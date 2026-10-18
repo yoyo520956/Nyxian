@@ -22,10 +22,10 @@
 import UIKit
 import UniformTypeIdentifiers
 
-class Certificate导入er: NXUITableViewController, UITextFieldDelegate {
+class CertificateImporter: NXUITableViewController, UITextFieldDelegate {
     var textField: NXTextFieldTableCell?
     
-    var cert: Complex导入TableCell?
+    var cert: ComplexImportTableCell?
     
     let importButton: UIBarButtonItem = UIBarButtonItem()
     
@@ -80,7 +80,7 @@ class Certificate导入er: NXUITableViewController, UITextFieldDelegate {
         
         switch indexPath.section {
         case 0:
-            cert = Complex导入TableCell(parent: self)
+            cert = ComplexImportTableCell(parent: self)
             cell = cert!
             break
         case 1:
@@ -133,11 +133,11 @@ class Certificate导入er: NXUITableViewController, UITextFieldDelegate {
                    let url = cert.url {
                     let p12Data: Data = try Data(contentsOf: url)
                     
-                    LCUtils.validateCertificate(withCertificateData: p12Data, with密码: password) { [weak self] status, someWords in
+                    LCUtils.validateCertificate(withCertificateData: p12Data, withPassword: password) { [weak self] status, someWords in
                         guard let self = self else { return }
                         if status == 0 {
                             LCUtils.certificateData = p12Data
-                            LCUtils.certificate密码 = password
+                            LCUtils.certificatePassword = password
                             DispatchQueue.main.async {
                                 self.dismiss(animated: true)
                             }

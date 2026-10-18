@@ -202,7 +202,7 @@ class MainSplitViewController: UISplitViewController, UISplitViewControllerDeleg
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        NotificationCenter.default.addObserver(self, selector: #selector(invokeBuild), name: Notification.Name("运行Act"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(invokeBuild), name: Notification.Name("RunAct"), object: nil)
         NXApplicationState.fileListRequiresToSendRequests = true
     }
     
@@ -258,7 +258,7 @@ class MainSplitViewController: UISplitViewController, UISplitViewControllerDeleg
                         var processIdentifier: pid_t = -1
                         
                         if project.projectConfig.schemeKind == .app {
-                            processIdentifier = PEProcessManager.shared().spawnProcess(withBundleIdentifier: project.projectConfig.bundleid, withItems: ["PEFileTable":fileTable], withKernelSurfaceProcess: nil, doRestartIf运行ning: true)
+                            processIdentifier = PEProcessManager.shared().spawnProcess(withBundleIdentifier: project.projectConfig.bundleid, withItems: ["PEFileTable":fileTable], withKernelSurfaceProcess: nil, doRestartIfRunning: true)
                         } else if project.projectConfig.schemeKind == .utility, let execPath = execPath {
                             guard let homePath: String = LDEApplicationWorkspace.shared().utilityHomePath() else {
                                 return
@@ -619,7 +619,7 @@ class SplitScreenDetailViewController: UIViewController, PEProcessObserver {
         var barButtons: [UIBarButtonItem] = []
         if !NXApplicationState.extensionLessMode {
             barButtons.append(UIBarButtonItem(image: UIImage(systemName: "play.fill"), primaryAction: UIAction { _ in
-                NotificationCenter.default.post(name: NSNotification.Name("运行Act"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("RunAct"), object: nil)
             }))
         }
         barButtons.append(UIBarButtonItem(image: UIImage(systemName: "archivebox.fill"), primaryAction: UIAction { [weak self] _ in

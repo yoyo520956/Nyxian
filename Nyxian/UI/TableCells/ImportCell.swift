@@ -23,7 +23,7 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
-class 导入TableCell: UITableViewCell, UIDocumentPickerDelegate {
+class ImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
 
     private weak var parent: UIViewController?
     private(set) var url: URL?
@@ -64,7 +64,7 @@ class 导入TableCell: UITableViewCell, UIDocumentPickerDelegate {
         let bounds = contentView.bounds
         let inset: CGFloat = 16
 
-        // 导入 button fills full height, standard Apple style
+        // Import button fills full height, standard Apple style
         importButton.frame = CGRect(
             x: inset,
             y: 0,

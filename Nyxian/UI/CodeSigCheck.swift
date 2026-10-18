@@ -62,11 +62,11 @@ func checkSigningSetup(completionHandler: @escaping (Bool) -> Void = { _ in }, s
     if !NXApplicationState.extensionExists {
         if showAlert {
             errorFallback(title: "未找到扩展", message: """
-所需的 NSExtension 未找到。
+The required NSExtension could not be found.
 
-请确保安装 App 时扩展完整保留，且未在签名或安装过程中被移除。
+Make sure the app was installed with its extension intact and that it wasn't removed during signing or installation.
 
-当前处于无扩展模式：在此问题解决前，App 将无法在 Nyxian 内运行。
+App is now in extension-less mode, meaning apps cannot run within Nyxian until the problem has been resolved.
 """)
         }
         completionHandler(false)
@@ -76,13 +76,13 @@ func checkSigningSetup(completionHandler: @escaping (Bool) -> Void = { _ in }, s
     if !NXApplicationState.extensionCorrectlyEntitled {
         if showAlert {
             errorFallback(title: "不支持的描述文件", message: """
-扩展缺少 "get-task-allow" 权限。
+Extension doesn't have the "get-task-allow" entitlement.
 
-不支持分发（Distribution）证书。必须使用 Apple 签发的开发者（Developer）证书。
+Distribution certificates are not supported. You must use a Developer certificate issued by Apple.
 
-7 天免费证书就是开发者证书。
+The 7 day certificate is a Developer certificate.
 
-当前处于无扩展模式：在此问题解决前，App 将无法在 Nyxian 内运行。
+App is now in extension-less mode, meaning apps cannot run within Nyxian until the problem has been resolved.
 """)
         }
         completionHandler(false)

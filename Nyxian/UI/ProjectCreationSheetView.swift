@@ -29,13 +29,13 @@ enum ProjectCreationStep {
 
 struct ProjectCreationSheetView: View {
     @ObservedObject var model: ProjectTemplateOptionsModel
-    let on取消: () -> Void
-    let on创建: () -> Void
+    let onCancel: () -> Void
+    let onCreate: () -> Void
     
-    init(model: ProjectTemplateOptionsModel, on取消: @escaping () -> Void, on创建: @escaping () -> Void) {
+    init(model: ProjectTemplateOptionsModel, onCancel: @escaping () -> Void, onCreate: @escaping () -> Void) {
         self.model = model
-        self.on取消 = on取消
-        self.on创建 = on创建
+        self.onCancel = onCancel
+        self.onCreate = onCreate
         
         NXWindowServer.shared().unfocusFocusedWindow()
     }
@@ -83,7 +83,7 @@ struct ProjectCreationSheetView: View {
     
     private var controls: some View {
         HStack(spacing: 12) {
-            Button("取消", action: on取消)
+            Button("取消", action: onCancel)
                 .projectCreationSecondaryButtonStyle()
             
             Spacer(minLength: 12)
@@ -99,7 +99,7 @@ struct ProjectCreationSheetView: View {
                 if model.step == .template {
                     withAnimation(.snappy) { model.step = .options }
                 } else {
-                    on创建()
+                    onCreate()
                 }
             }
             .projectCreationPrimaryButtonStyle()

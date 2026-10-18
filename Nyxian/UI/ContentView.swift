@@ -35,11 +35,11 @@ import UIKit
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func reload工程FromDisk() {
-        let raw工程List = NXProject.list工程(at: NXBootstrap.shared().rootURL.appendingPathComponent("Projects")) as! [String: [NXProject]]
+    private func reloadProjectsFromDisk() {
+        let rawProjectsList = NXProject.listProjects(at: NXBootstrap.shared().rootURL.appendingPathComponent("Projects")) as! [String: [NXProject]]
         var buckets: [String: [NXProject]] = [:]
         
-        for project in raw工程List.values.flatMap({ $0 }) {
+        for project in rawProjectsList.values.flatMap({ $0 }) {
             let key = Self.sectionKey(for: project)
             buckets[key, default: []].append(project)
         }
@@ -68,7 +68,7 @@ import UIKit
         )
         self.navigationItem.setRightBarButtonItems([createItem, importItem], animated: false)
         
-        reload工程FromDisk()
+        reloadProjectsFromDisk()
     }
 
     @objc private func presentProjectCreationSheet() {
@@ -243,7 +243,7 @@ import UIKit
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if sessionIndex != nil {
-            reload工程FromDisk()
+            reloadProjectsFromDisk()
         }
     }
     
@@ -271,14 +271,14 @@ import UIKit
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         let key = sortedSectionKeys[section]
-        let section工程 = self.projectsList[key] ?? []
-        return "\(sectionTitle(for: key)) (\(section工程.count))"
+        let sectionProjects = self.projectsList[key] ?? []
+        return "\(sectionTitle(for: key)) (\(sectionProjects.count))"
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let key = sortedSectionKeys[section]
-        let section工程 = self.projectsList[key] ?? []
-        return section工程.count
+        let sectionProjects = self.projectsList[key] ?? []
+        return sectionProjects.count
     }
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -287,8 +287,8 @@ import UIKit
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let key = sortedSectionKeys[indexPath.section]
-        let section工程 = self.projectsList[key] ?? []
-        let project: NXProject = section工程[indexPath.row]
+        let sectionProjects = self.projectsList[key] ?? []
+        let project: NXProject = sectionProjects[indexPath.row]
         let cell: ProjectTableCell = self.tableView.dequeueReusableCell(withIdentifier: ProjectTableCell.reuseIdentifier) as! ProjectTableCell
         let icon: UIImage? = {
             switch project.projectConfig.schemeKind {
@@ -307,9 +307,9 @@ import UIKit
         sessionIndex = indexPath
         
         let key = sortedSectionKeys[indexPath.section]
-        let section工程 = self.projectsList[key] ?? []
+        let sectionProjects = self.projectsList[key] ?? []
         
-        let selectedProject: NXProject = section工程[indexPath.row]
+        let selectedProject: NXProject = sectionProjects[indexPath.row]
         
         if UIDevice.current.userInterfaceIdiom == .pad {
             let padFileVC: MainSplitViewController = MainSplitViewController(project: selectedProject)
@@ -326,8 +326,8 @@ import UIKit
             let export: UIAction = UIAction(title: "导出", image: UIImage(systemName: "square.and.arrow.up.fill")) { _ in
                 DispatchQueue.global().async {
                     let key = self.sortedSectionKeys[indexPath.section]
-                    let section工程 = self.projectsList[key] ?? []
-                    let project: NXProject = section工程[indexPath.row]
+                    let sectionProjects = self.projectsList[key] ?? []
+                    let project: NXProject = sectionProjects[indexPath.row]
                     
                     let zipPath: String = "\(NSTemporaryDirectory())/\(project.projectConfig.displayName!).zip"
                     zipDirectoryAtPath(project.url.path, zipPath, true)
@@ -337,8 +337,8 @@ import UIKit
             
             let item: UIAction = UIAction(title: "移除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { _ in
                 let key = self.sortedSectionKeys[indexPath.section]
-                let section工程 = self.projectsList[key] ?? []
-                let project = section工程[indexPath.row]
+                let sectionProjects = self.projectsList[key] ?? []
+                let project = sectionProjects[indexPath.row]
                 
                 self.presentConfirmationAlert(
                     title: "警告",
@@ -462,7 +462,7 @@ final class ProjectTemplateOptionsModel: ObservableObject {
             .joined(separator: ".")
     }
 
-    var selected语言： NXProjectLanguageKind {
+    var selectedLanguage: NXProjectLanguageKind {
         switch selectedLanguageID {
         case "ObjC": return .objectiveC
         case "C++": return .CXX
@@ -471,8 +471,8 @@ final class ProjectTemplateOptionsModel: ObservableObject {
         }
     }
 
-    var selected界面： NXProjectInterfaceKind {
-        guard schemeKind == .app else { return .未知 }
+    var selectedInterface: NXProjectInterfaceKind {
+        guard schemeKind == .app else { return .unknown }
         return selectedInterfaceID == "SwiftUI" ? .swiftUI : .uiKit
     }
 

@@ -589,7 +589,7 @@ class CodeEditorViewController: UIViewController, NXDocumentDelegate {
                 self.document?.autosave()
             }
             
-            show保存Animation()
+            showSaveAnimation()
             
             guard let project = self.project,
                   let database = self.database,
@@ -601,7 +601,7 @@ class CodeEditorViewController: UIViewController, NXDocumentDelegate {
         }
     }
     
-    private func show保存Animation() {
+    private func showSaveAnimation() {
         if UIDevice.current.userInterfaceIdiom == .pad {
             let layer = view.layer
             
@@ -632,7 +632,7 @@ class CodeEditorViewController: UIViewController, NXDocumentDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidUndoChange, object: textView.undoManager)
         NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidRedoChange, object: textView.undoManager)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDid关闭UndoGroup, object: textView.undoManager)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidCloseUndoGroup, object: textView.undoManager)
         
         if UIDevice.current.userInterfaceIdiom == .pad {
             NotificationCenter.default.addObserver(self, selector: #selector(hardwareKeyboardDidConnect), name: .GCKeyboardDidConnect, object: nil)

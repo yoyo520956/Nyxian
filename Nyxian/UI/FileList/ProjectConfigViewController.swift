@@ -38,7 +38,7 @@ class FlagsEditViewController: NXUITableViewController {
     private var flags: [String]
     var onFlagsChanged: (([String]) -> Void)?
 
-    private let addFlagCell = "添加FlagCell"
+    private let addFlagCell = "AddFlagCell"
     private let flagCell = "FlagCell"
 
     init(flagType: FlagType, flags: [String]) {
@@ -98,7 +98,7 @@ class FlagsEditViewController: NXUITableViewController {
 
         switch Section(rawValue: indexPath.section)! {
             case .flags: presentEditAlert(editing: indexPath.row)
-            case .add: present添加Alert()
+            case .add: presentAddAlert()
         }
     }
 
@@ -119,7 +119,7 @@ class FlagsEditViewController: NXUITableViewController {
                 tableView.deleteRows(at: [indexPath], with: .automatic)
                 notifyChange()
             case .insert:
-                present添加Alert()
+                presentAddAlert()
             default:
                 break
         }
@@ -152,7 +152,7 @@ class FlagsEditViewController: NXUITableViewController {
         Section(rawValue: indexPath.section) == .flags
     }
 
-    private func present添加Alert() {
+    private func presentAddAlert() {
         presentFlagAlert(title: "添加编译参数", existingValue: nil) { [weak self] value in
             guard let self else { return }
             self.flags.append(value)

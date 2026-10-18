@@ -22,7 +22,7 @@
 import Foundation
 import UIKit
 
-class 致谢ViewController: NXUITableViewController {
+class CreditsViewController: NXUITableViewController {
     
     struct CreditSection {
         let title: String
@@ -73,7 +73,7 @@ class 致谢ViewController: NXUITableViewController {
         ),
         
         CreditSection(
-            title: "贡献者s",
+            title: "Contributors",
             credits: [
                 Credit(
                     name: "Kyle",

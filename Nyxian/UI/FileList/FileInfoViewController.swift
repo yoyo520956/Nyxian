@@ -1,28 +1,28 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- 拷贝right (C) 2025 - 2026 emexlab
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
  Nyxian is free software: you can redistribute it and/or modify
- it under the terms of the GNU Affero 通用 Public License as published by
+ it under the terms of the GNU Affero General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
  Nyxian is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU Affero 通用 Public License for more details.
+ GNU Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero 通用 Public License
+ You should have received a copy of the GNU Affero General Public License
  along with Nyxian. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Foundation
 import UIKit
 import Darwin
-import Uniform类型Identifiers
+import UniformTypeIdentifiers
 
 class FileInfoViewController: NXUITableViewController {
     
@@ -42,7 +42,7 @@ class FileInfoViewController: NXUITableViewController {
     
     private var sections: [Section] = []
     
-    private var directory大小IndexPath: IndexPath?
+    private var directorySizeIndexPath: IndexPath?
     
     private static let dateFormatter: DateFormatter = {
         let fmt = DateFormatter()
@@ -55,7 +55,7 @@ class FileInfoViewController: NXUITableViewController {
         self.fileEntry = fileEntry
         self.fileAttr = try FileManager.default.attributesOfItem(atPath: fileEntry.path)
         
-        super.init(style: .inset群组ed)
+        super.init(style: .insetGrouped)
     }
     
     @MainActor required init?(coder: NSCoder) {
@@ -70,17 +70,17 @@ class FileInfoViewController: NXUITableViewController {
         
         self.buildSections()
         
-        if self.file类型 == .type目录 {
-            self.load目录大小()
+        if self.fileType == .typeDirectory {
+            self.loadDirectorySize()
         }
     }
     
-    private var file类型: FileAttribute类型? {
+    private var fileType: FileAttributeType? {
         guard let raw = self.fileAttr[.type] as? String else { return nil }
-        return FileAttribute类型(rawValue: raw)
+        return FileAttributeType(rawValue: raw)
     }
     
-    private var logical大小: Int64 {
+    private var logicalSize: Int64 {
         (self.fileAttr[.size] as? NSNumber)?.int64Value ?? 0
     }
     
@@ -93,15 +93,15 @@ class FileInfoViewController: NXUITableViewController {
         return Self.dateFormatter.string(from: date)
     }
     
-    private static func describe(_ type: FileAttribute类型?) -> String {
+    private static func describe(_ type: FileAttributeType?) -> String {
         switch type {
             case .some(.typeRegular):
                 return "普通文件"
-            case .some(.type目录):
+            case .some(.typeDirectory):
                 return "目录"
             case .some(.typeSymbolicLink):
                 return "符号链接"
-            case .some(.type套接字):
+            case .some(.typeSocket):
                 return "套接字"
             case .some(.typeCharacterSpecial):
                 return "字符设备"
@@ -112,7 +112,7 @@ class FileInfoViewController: NXUITableViewController {
         }
     }
     
-    private static func describe权限(_ mode: UInt16) -> String {
+    private static func describePermissions(_ mode: UInt16) -> String {
         let bits = ["---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"]
         let owner = bits[Int((mode >> 6) & 0o7)]
         let group = bits[Int((mode >> 3) & 0o7)]
@@ -120,8 +120,8 @@ class FileInfoViewController: NXUITableViewController {
         return "\(owner)\(group)\(other) (\(String(mode & 0o7777, radix: 8)))"
     }
     
-    private static func describe保护(_ raw: String) -> String {
-        switch File保护类型(rawValue: raw) {
+    private static func describeProtection(_ raw: String) -> String {
+        switch FileProtectionType(rawValue: raw) {
             case .complete:
                 return "Complete"
             case .completeUnlessOpen:
@@ -135,26 +135,26 @@ class FileInfoViewController: NXUITableViewController {
         }
     }
     
-    private static func kind(for path: String, type: FileAttribute类型?) -> String {
-        if type == .type目录 { return "文件夹" }
+    private static func kind(for path: String, type: FileAttributeType?) -> String {
+        if type == .typeDirectory { return "文件夹" }
         if type == .typeSymbolicLink { return "别名" }
         
         let ext = (path as NSString).pathExtension
         if !ext.isEmpty,
-           let ut类型 = UT类型(filenameExtension: ext),
-           let description = ut类型.localizedDescription {
+           let utType = UTType(filenameExtension: ext),
+           let description = utType.localizedDescription {
             return description
         }
         return ext.isEmpty ? "文档" : "\(ext.uppercased()) 文件"
     }
     
-    private static func allocated大小(for path: String) -> Int64? {
+    private static func allocatedSize(for path: String) -> Int64? {
         let url = URL(fileURLWithPath: path)
-        let values = try? url.resourceValues(forKeys: [.totalFileAllocated大小Key])
-        return (values?.totalFileAllocated大小).map(Int64.init)
+        let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
+        return (values?.totalFileAllocatedSize).map(Int64.init)
     }
     
-    private static func extendedAttribute名称s(atPath path: String) -> [String] {
+    private static func extendedAttributeNames(atPath path: String) -> [String] {
         let length = listxattr(path, nil, 0, XATTR_NOFOLLOW)
         guard length > 0 else {
             return []
@@ -170,7 +170,7 @@ class FileInfoViewController: NXUITableViewController {
     
     private func buildSections() {
         let path = self.fileEntry.path
-        let type = self.file类型
+        let type = self.fileType
         var result: [Section] = []
         
         var general: [Row] = [
@@ -178,12 +178,12 @@ class FileInfoViewController: NXUITableViewController {
             Row(title: "种类", value: Self.kind(for: path, type: type))
         ]
         
-        if type == .type目录 {
+        if type == .typeDirectory {
             general.append(Row(title: "大小", value: "计算中\u{2026}"))
-            self.directory大小IndexPath = IndexPath(row: general.count - 1, section: 0)
+            self.directorySizeIndexPath = IndexPath(row: general.count - 1, section: 0)
         } else {
-            general.append(Row(title: "大小", value: ByteCountFormatter.string(fromByteCount: self.logical大小, countStyle: .file)))
-            if let allocated = Self.allocated大小(for: path), allocated != self.logical大小 {
+            general.append(Row(title: "大小", value: ByteCountFormatter.string(fromByteCount: self.logicalSize, countStyle: .file)))
+            if let allocated = Self.allocatedSize(for: path), allocated != self.logicalSize {
                 general.append(Row(title: "磁盘占用", value: ByteCountFormatter.string(fromByteCount: allocated, countStyle: .file)))
             }
         }
@@ -207,21 +207,21 @@ class FileInfoViewController: NXUITableViewController {
         }
         
         var ownership: [Row] = []
-        if let owner = self.fileAttr[.ownerAccount名称] as? String {
+        if let owner = self.fileAttr[.ownerAccountName] as? String {
             ownership.append(Row(title: "所有者", value: owner))
         } else if let uid = self.number(.ownerAccountID) {
             ownership.append(Row(title: "所有者", value: "uid \(uid.intValue)"))
         }
-        if let group = self.fileAttr[.group所有者Account名称] as? String {
+        if let group = self.fileAttr[.groupOwnerAccountName] as? String {
             ownership.append(Row(title: "群组", value: group))
-        } else if let gid = self.number(.group所有者AccountID) {
+        } else if let gid = self.number(.groupOwnerAccountID) {
             ownership.append(Row(title: "群组", value: "gid \(gid.intValue)"))
         }
-        if let mode = self.number(.posix权限)?.uint16Value {
-            ownership.append(Row(title: "权限", value: Self.describe权限(mode), monospaced: true))
+        if let mode = self.number(.posixPermissions)?.uint16Value {
+            ownership.append(Row(title: "权限", value: Self.describePermissions(mode), monospaced: true))
         }
         if let protection = self.fileAttr[.protectionKey] as? String {
-            ownership.append(Row(title: "保护", value: Self.describe保护(protection)))
+            ownership.append(Row(title: "保护", value: Self.describeProtection(protection)))
         }
         if !ownership.isEmpty {
             result.append(Section(title: "所有权", rows: ownership))
@@ -236,7 +236,7 @@ class FileInfoViewController: NXUITableViewController {
         }
         
         var flags: [String] = []
-        if self.number(.不可变)?.boolValue == true { flags.append("不可变") }
+        if self.number(.immutable)?.boolValue == true { flags.append("不可变") }
         if self.number(.appendOnly)?.boolValue == true { flags.append("仅追加") }
         if self.number(.extensionHidden)?.boolValue == true { flags.append("隐藏扩展名") }
         if !flags.isEmpty {
@@ -244,7 +244,7 @@ class FileInfoViewController: NXUITableViewController {
         }
         result.append(Section(title: "高级", rows: advanced))
         
-        let xattrs = Self.extendedAttribute名称s(atPath: path)
+        let xattrs = Self.extendedAttributeNames(atPath: path)
         if !xattrs.isEmpty {
             result.append(Section(title: "扩展属性", rows: xattrs.map { Row(title: $0, value: "", monospaced: true) }))
         }
@@ -252,7 +252,7 @@ class FileInfoViewController: NXUITableViewController {
         self.sections = result
     }
     
-    private func load目录大小() {
+    private func loadDirectorySize() {
         let path = self.fileEntry.path
         
         Task.detached(priority: .utility) {
@@ -260,13 +260,13 @@ class FileInfoViewController: NXUITableViewController {
             var items = 0
             
             let url = URL(fileURLWithPath: path)
-            let keys: Set<URLResourceKey> = [.totalFileAllocated大小Key, .file大小Key, .isRegularFileKey]
+            let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .fileSizeKey, .isRegularFileKey]
             if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(keys), options: [], errorHandler: { _, _ in true }) {
                 for case let child as URL in enumerator {
                     guard let values = try? child.resourceValues(forKeys: keys) else { continue }
                     items += 1
                     if values.isRegularFile == true {
-                        total += Int64(values.totalFileAllocated大小 ?? values.file大小 ?? 0)
+                        total += Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
                     }
                 }
             }
@@ -275,7 +275,7 @@ class FileInfoViewController: NXUITableViewController {
             let summary = "\(formatted), \(items) item\(items == 1 ? "" : "s")"
             
             await MainActor.run { [weak self] in
-                guard let self, let indexPath = self.directory大小IndexPath else {
+                guard let self, let indexPath = self.directorySizeIndexPath else {
                     return
                 }
                 self.sections[indexPath.section].rows[indexPath.row].value = summary
@@ -308,7 +308,7 @@ class FileInfoViewController: NXUITableViewController {
         config.prefersSideBySideTextAndSecondaryText = true
         config.secondaryTextProperties.numberOfLines = 0
         if row.monospaced {
-            config.secondaryTextProperties.font = .monospacedSystemFont(of大小: 15, weight: .regular)
+            config.secondaryTextProperties.font = .monospacedSystemFont(ofSize: 15, weight: .regular)
         }
         
         cell.contentConfiguration = config
@@ -322,7 +322,7 @@ class FileInfoViewController: NXUITableViewController {
         
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             UIMenu(children: [
-                UIAction(title: "拷贝", image: UIImage(system名称: "doc.on.doc")) { _ in
+                UIAction(title: "拷贝", image: UIImage(systemName: "doc.on.doc")) { _ in
                     UIPasteboard.general.string = copied
                 }
             ])

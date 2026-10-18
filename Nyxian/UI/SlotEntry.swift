@@ -115,7 +115,7 @@ final class SlotCoordinator: NSObject, UITabBarControllerDelegate, UIOnboardingV
         let themedTabViewController = NXUITabBarController()
         
         let contentNavigationController = UINavigationController(rootViewController: ContentViewController())
-        let settingsNavigationController = UINavigationController(rootViewController: NX设置TableViewController())
+        let settingsNavigationController = UINavigationController(rootViewController: NXSettingsTableViewController())
         
         contentNavigationController.tabBarItem = UITabBarItem(title: "工程", image: UIImage(systemName: "square.grid.2x2.fill"), tag: 0)
         settingsNavigationController.tabBarItem = UITabBarItem(title: "设置", image: UIImage(systemName: "gear"), tag: 1)
@@ -168,7 +168,7 @@ final class SlotCoordinator: NSObject, UITabBarControllerDelegate, UIOnboardingV
             return false
         }
         if viewController.tabBarItem.tag == 2 {
-            NXWindowServer.shared().showApp切换器External()
+            NXWindowServer.shared().showAppSwitcherExternal()
             return false
         }
         return true
@@ -214,7 +214,7 @@ struct UIOnboardingHelper {
                   description: "完整的开发环境，支持 Swift、C、C++、Objective-C 与 Objective-C++，可运行于任何 iOS 18.0+ 的 iPhone 或 iPad。"),
             .init(icon: UIImage(systemName: "wrench.and.screwdriver.fill")!,
                   iconTint: UIColor { trait in trait.userInterfaceStyle == .dark ? UIColor(red: 0.78, green: 0.71, blue: 0.95, alpha: 1.0) : UIColor(red: 0.55, green: 0.45, blue: 0.85, alpha: 1.0) },
-                  title: "移动开发套件",
+                  title: "MobileDevelopmentKit",
                   description: "完全开源的 LLVM、Swift、Clang 与 LLD 工具链，在 iOS 上原生运行，全程在设备本地完成编译与链接，无需任何昂贵的云服务或订阅。"),
             .init(icon: UIImage(systemName: "cpu.fill")!,
                   iconTint: UIColor { trait in trait.userInterfaceStyle == .dark ? UIColor(red: 0.60, green: 0.88, blue: 0.80, alpha: 1.0) : UIColor(red: 0.30, green: 0.68, blue: 0.58, alpha: 1.0) },

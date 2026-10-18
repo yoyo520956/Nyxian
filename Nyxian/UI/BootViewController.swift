@@ -46,7 +46,7 @@ final class ROMImporter: NSObject, UIDocumentPickerDelegate {
         completion = nil
     }
     
-    func documentPickerWas取消led(_ controller: UIDocumentPickerViewController) {
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         completion?(nil)
         completion = nil
     }
@@ -121,7 +121,7 @@ final class ROMManifest {
     init(manifestPlistURL: URL) throws {
         // first we'll read the plist
         guard let manifestContent = NSDictionary(contentsOf: manifestPlistURL) as? [String: Any] else {
-            throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"读取清单 plist 失败"])
+            throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"failed to read menifest plist"])
         }
         
         // next we need to parse version
@@ -131,7 +131,7 @@ final class ROMManifest {
               let version = manifestContent["NXRomVersion"] as? String,
         let minimumNyxianVersion = manifestContent["NXRomMinimumNyxianVersion"] as? String,
         let executable = manifestContent["NXRomExecutable"] as? String else {
-            throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"清单 plist 格式错误"])
+            throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"malformed manifest plist"])
         }
         
         // ABI
@@ -173,7 +173,7 @@ final class ROMManifest {
             } else if let path: String = pathDict["NXPath"] as? String {
                 actualPathObjects.append(ROMPath(path: path, permission: permission, codesigning: ROMPath.ROMPathCodeSigningInfo(needed: requiresCodeSigning, neededNXT2: requiresNXT2Signing, nxt2: nxt2Entitlements)))
             } else {
-                throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"清单 plist 中的路径格式错误"])
+                throw NSError(domain: "org.emexlabs.nyxian.bootloader.rom-flash", code: 1, userInfo: [NSLocalizedDescriptionKey:"malformed manifest path's in manifest plist"])
             }
         }
         self.paths = actualPathObjects
@@ -252,13 +252,13 @@ enum BootConfig {
 enum EnforcementMode: String, CaseIterable {
     case enforcing
     case permissive
-    case 已禁用
+    case disabled
     
     var badge: String {
         switch self {
             case .enforcing: return "E"
             case .permissive: return "P"
-            case .已禁用: return "-"
+            case .disabled: return "-"
         }
     }
     
@@ -536,7 +536,7 @@ private func bootConfigItems(returningTo parent: @escaping (NXRecoveryViewContro
         switch BootConfig.entitlementMode {
             case .enforcing: c.recoveryLog("权限：强制模式")
             case .permissive: c.recoveryLogError("权限：宽容模式（仅记录拒绝，不阻止）")
-            case .已禁用: c.recoveryLogError("权限：已禁用（不执行任何检查）")
+            case .disabled: c.recoveryLogError("权限：已禁用（不执行任何检查）")
         }
     })
     
@@ -833,7 +833,7 @@ private func removeFlashedSlot(_ log: RomLog) {
         try FileManager.default.removeItem(at: flashedSlotURL())
         log.info("已移除刷入的 ROM，下次启动将使用 SuperSlot.dylib")
     } catch {
-        log.error("错误： \(errnoDescription(error))")
+        log.error("错误：\(errnoDescription(error))")
     }
 }
 
@@ -1008,7 +1008,7 @@ private func recoveryFlashROM(_ c: NXRecoveryViewController, archive: URL) {
                 })
             }
         } catch {
-            log.error("错误： \(error.localizedDescription)")
+            log.error("错误：\(error.localizedDescription)")
             try? FileManager.default.removeItem(at: flashedSlotURL())
             DispatchQueue.main.async {
                 c.recoveryLogError("\n刷入失败。\n请同时按住两个音量键返回菜单。")
@@ -1144,7 +1144,7 @@ class BootViewController: UIViewController {
             DispatchQueue.main.async {
                 guard case let .loaded(name, slotMain, slotDidAppear, slotCreateWindow) = slot else {
                     if case let .failed(message) = slot {
-                        self.enterRecovery(error: "错误： \(message)")
+                        self.enterRecovery(error: "错误：\(message)")
                     }
                     return
                 }

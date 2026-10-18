@@ -279,7 +279,7 @@ class KEXTManagementViewController: NXUITableViewController, UITextFieldDelegate
                 }
                 
                 // Gated >:3
-                let proceedWith安装: () -> Void = {
+                let proceedWithInstall: () -> Void = {
                     DispatchQueue.main.async {
                         let alert = UIAlertController(title: nil, message: "正在安装", preferredStyle: .alert)
                         
@@ -371,7 +371,7 @@ class KEXTManagementViewController: NXUITableViewController, UITextFieldDelegate
                             
                             alert.addAction(UIAlertAction(title: "安装", style: .default) { _ in
                                 DispatchQueue.global().async {
-                                    _ = proceedWith安装()
+                                    _ = proceedWithInstall()
                                 }
                             })
                             
@@ -380,7 +380,7 @@ class KEXTManagementViewController: NXUITableViewController, UITextFieldDelegate
                             self.present(alert, animated: true)
                         } else {
                             DispatchQueue.global().async {
-                                _ = proceedWith安装()
+                                _ = proceedWithInstall()
                             }
                         }
                     }

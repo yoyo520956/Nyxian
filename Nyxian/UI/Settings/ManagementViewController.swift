@@ -21,7 +21,7 @@
 
 import UIKit
 
-class NX管理UISingleFlight {
+class NXManagementUISingleFlight {
     private static let slot = DispatchSemaphore(value: 1)
     private static let queue = DispatchQueue(label: "org.emexlabs.nyxian.mgmt.singleflight", qos: .userInitiated)
     
@@ -35,7 +35,7 @@ class NX管理UISingleFlight {
     }
 }
 
-class 管理ViewController: NXUITableViewController {
+class ManagementViewController: NXUITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "管理"
@@ -107,19 +107,19 @@ class 管理ViewController: NXUITableViewController {
             print("pressed on list RootCAs")
         case 2:
             if indexPath.row == 0 {
-                navigationController?.pushViewController(Application管理ViewController(style: .insetGrouped), animated: true)
+                navigationController?.pushViewController(ApplicationManagementViewController(style: .insetGrouped), animated: true)
             } else {
-                navigationController?.pushViewController(KEXT管理ViewController(style: .insetGrouped), animated: true)
+                navigationController?.pushViewController(KEXTManagementViewController(style: .insetGrouped), animated: true)
             }
         default:
             if indexPath.row == 0 {
                 ProjectTableCell.iconCache.removeAllObjects()
             } else if indexPath.row == 1 {
-                NX管理UISingleFlight.run {
+                NXManagementUISingleFlight.run {
                     PEUserspaceManager.shared().rebootUserspace()
                 }
             } else if indexPath.row == 2 {
-                NX管理UISingleFlight.run {
+                NXManagementUISingleFlight.run {
                     PEUserspaceManager.shared().reloadDaemons()
                 }
             } else if indexPath.row == 3 {
