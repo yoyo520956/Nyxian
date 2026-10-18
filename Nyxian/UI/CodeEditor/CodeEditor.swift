@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -25,7 +25,10 @@ import TreeSitter
 import TreeSitterC
 import TreeSitterObjc
 import TreeSitterXML
+import TreeSitterCPP
+import TreeSitterSwift
 import GameController
+import MobileDevelopmentKit
 
 func booleanDefaults(key: String, defaultValue: Bool) -> Bool {
     if UserDefaults.standard.object(forKey: key) == nil {
@@ -34,30 +37,16 @@ func booleanDefaults(key: String, defaultValue: Bool) -> Bool {
     return UserDefaults.standard.bool(forKey: key)
 }
 
-struct BasicCharacterPair: CharacterPair {
-    let leading: String
-    let trailing: String
-}
-
-extension CharacterPair where Self == BasicCharacterPair {
-    static var curlyBraces: Self  { .init(leading: "{", trailing: "}") }
-    static var squareBrackets: Self { .init(leading: "[", trailing: "]") }
-    static var parentheses: Self  { .init(leading: "(", trailing: ")") }
-    static var doubleQuotes: Self  { .init(leading: "\"", trailing: "\"") }
-    static var singleQuotes: Self  { .init(leading: "'", trailing: "'") }
-    static var angleBrackets: Self { .init(leading: "<", trailing: ">") }
-}
-
 // MARK: - OnDissapear Container
-class CodeEditorViewController: UIViewController {
-    private(set) var path: String
+class CodeEditorViewController: UIViewController, NXDocumentDelegate {
+    private(set) var document: NXDocument?
+    private(set) var file: MDKFile
     private(set) var textView: TextView
     private(set) var project: NXProject?
-    private(set) var synpushServer: SynpushServer?
-    private(set) var coordinator: Coordinator?
+    private(set) var languageServer: NXLanguageServer?
+    private(set) var coordinator: CodeEditorCoordinator?
     private(set) var database: DebugDatabase?
-    private(set) var line: UInt64?
-    private(set) var column: UInt64?
+    private(set) var location: MDKSourceLocation?
     private(set) var floatingToolbar: UIToolbar?
     private(set) var floatingToolbarBottomConstraint: NSLayoutConstraint?
     
@@ -68,39 +57,44 @@ class CodeEditorViewController: UIViewController {
     
     let isReadOnly: Bool
     
-    init(
-        project: NXProject?,
-        path: String,
-        line: UInt64? = nil,
-        column: UInt64? = nil,
-        isReadOnly: Bool = false
-    ) {
-        self.path = path
-        
+    init?(project: NXProject?,
+          url: URL,
+          line: CFIndex? = nil,
+          column: CFIndex? = nil,
+          isReadOnly: Bool = false) {
+        guard let file = MDKFile(url: url) else {
+            return nil
+        }
+        self.file = file
         self.textView = TextView()
         
         self.project = project
-        self.line = line
-        self.column = column
-        self.isReadOnly = isReadOnly
         
-        if !isReadOnly {
+        if let line = line,
+           let column = column {
+            self.location = MDKSourceLocationMake(line, column)
+        }
+        self.isReadOnly = isReadOnly ? isReadOnly : !FileManager.default.isWritableFile(atPath: url.path)
+        
+        // Only allow C files to typecheck for now
+        // Cuz swift is not supported yet by synpush
+        // because its still a long journey till
+        // swift gets all of those nice little features.
+        if self.file.isClang || self.file.isSwift {
+            self.languageServer = NXLanguageServer(self.file.fileURL.path)
+            
             if let project = project {
-                let cachePath = project.cachePath!
-                let suffix = self.path.URLGet().pathExtension
-                if ["c", "m", "cpp", "mm", "h", "hpp"].contains(suffix) {
-                    self.synpushServer = SynpushServer(self.path)
-                    self.database = DebugDatabase.getDatabase(ofPath: "\(cachePath)/debug.json")
-                }
-            }
-        } else {
-            let suffix = self.path.URLGet().pathExtension
-            if ["c", "m", "cpp", "mm", "h", "hpp"].contains(suffix) {
-                self.synpushServer = SynpushServer(self.path)
+                self.database = DebugDatabase.getDatabase(ofPath: project.cacheURL.appendingPathComponent("debug.json").path)
             }
         }
         
         super.init(nibName: nil, bundle: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(changedProjectSettings(_:)), name: Notification.Name("NXProjectSettingsChanged"), object: nil)
+    }
+
+    @objc func changedProjectSettings(_ notification: Notification) {
+        self.languageServer?.releaseMemory()
+        self.coordinator?.textViewDidChange(self.textView)
     }
     
     required init?(coder: NSCoder) {
@@ -115,44 +109,47 @@ class CodeEditorViewController: UIViewController {
             self.navigationController?.navigationBar.scrollEdgeAppearance = currentNavigationBarAppearance
         }
         
-        do {
-            self.textView.text = try String(contentsOf: URL(fileURLWithPath: self.path), encoding: .utf8)
-        } catch {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                // FIXME: Handle file closes
-            } else {
-                self.dismiss(animated: true)
+        NXDocumentManager.shared().open(URL(fileURLWithPath: self.file.fileURL.path)) { [weak self] doc in
+            guard let doc = doc else {
+                if UIDevice.current.userInterfaceIdiom != .pad {
+                    self?.dismiss(animated: true)
+                } else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+                        NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["close", self?.file.fileURL.path ?? ""])
+                    })
+                }
+                return
+            }
+            doc.delegate = self
+            self?.document = doc
+            
+            DispatchQueue.main.async {
+                self?.textView.text = doc.text
             }
         }
         
-        let fileURL = URL(fileURLWithPath: self.path)
-        self.title = fileURL.lastPathComponent
+        self.title = self.file.fileURL.lastPathComponent
         
-        if !self.isReadOnly {
+        if !NXApplicationState.fileListRequiresToSendRequests,
+           !self.isReadOnly {
             let saveButton: UIBarButtonItem = UIBarButtonItem()
             saveButton.tintColor = .label
-            
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                saveButton.title = "Save (Cmd + S)"
-            } else {
-                saveButton.title = "Save"
-            }
+            saveButton.title = "保存"
             saveButton.target = self
             saveButton.action = #selector(saveText)
             self.navigationItem.setRightBarButton(saveButton, animated: true)
         }
         
-        if UIDevice.current.userInterfaceIdiom != .pad {
+        if !NXApplicationState.fileListRequiresToSendRequests {
             let closeButton: UIBarButtonItem = UIBarButtonItem()
             closeButton.tintColor = .label
-            closeButton.title = "Close"
+            closeButton.title = "关闭"
             closeButton.target = self
             closeButton.action = #selector(closeEditor)
             self.navigationItem.setLeftBarButton(closeButton, animated: true)
         }
         
-        let theme: LDETheme = currentTheme ?? LDEThemeReader.shared.currentlySelectedTheme()
-        theme.fontSize = UserDefaults.standard.object(forKey: "LDEFontSize") == nil ? 10.0 : CGFloat(UserDefaults.standard.integer(forKey: "LDEFontSize"))
+        let theme: LDETheme = LDETheme.currentTheme ?? LDEThemeReader.shared.currentlySelectedTheme()
             
         self.view.backgroundColor = .systemBackground
         self.textView.backgroundColor = theme.backgroundColor
@@ -166,8 +163,9 @@ class CodeEditorViewController: UIViewController {
         self.textView.showSpaces = booleanDefaults(key: "LDEShowSpaces", defaultValue: true)
         self.textView.isLineWrappingEnabled = booleanDefaults(key: "LDEWrapLines", defaultValue: true)
         self.textView.showLineBreaks = booleanDefaults(key: "LDEShowLineBreaks", defaultValue: true)
+        self.textView.indentStrategy = .tab(length: 4)
         
-        if synpushServer != nil {
+        if self.languageServer != nil || self.file.type == .swift {
             self.autoindent = booleanDefaults(key: "LDEAutoindent", defaultValue: true)
         }
         
@@ -187,7 +185,18 @@ class CodeEditorViewController: UIViewController {
         self.textView.smartInsertDeleteType = .no
         self.textView.autocorrectionType = .no
         self.textView.autocapitalizationType = .none
-        self.textView.textContainerInset = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 0)
+        
+        if #available(iOS 27.0, *) {
+            self.textView.textContainerInset = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 0)
+        } else {
+            if #available(iOS 26.0, *),
+               UIDevice.current.userInterfaceIdiom == .pad {
+                self.textView.textContainerInset = UIEdgeInsets(top: 20, left: 2, bottom: 20, right: 0)
+                self.textView.gutterLeadingPadding = 10
+            } else {
+                self.textView.textContainerInset = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 0)
+            }
+        }
         self.textView.isEditable = !self.isReadOnly
         
         func loadLanguage(language: UnsafePointer<TSLanguage>, highlightsURL: [URL]) {
@@ -206,30 +215,39 @@ class CodeEditorViewController: UIViewController {
             self.textView.setLanguageMode(languageMode)
         }
         
-        switch fileURL.pathExtension {
+        switch self.file.fileURL.pathExtension {
         case "m","h":
-            self.textView.characterPairs = [.squareBrackets, .curlyBraces, .parentheses, .doubleQuotes, .singleQuotes, .angleBrackets]
             loadLanguage(language: tree_sitter_objc(), highlightsURL: [
-                "\(Bundle.main.bundlePath)/TreeSitterC_TreeSitterC.bundle/queries/highlights.scm".URLGet(),
-                "\(Bundle.main.bundlePath)/Shared/ObjCFix/highlights.scm".URLGet()
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterC_TreeSitterC.bundle/queries/highlights.scm"),
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/Shared/ObjCFix/highlights.scm")
             ])
             break
         case "c":
-            self.textView.characterPairs = [.squareBrackets, .curlyBraces, .parentheses, .doubleQuotes, .singleQuotes, .angleBrackets]
             loadLanguage(language: tree_sitter_c(), highlightsURL: [
-                "\(Bundle.main.bundlePath)/TreeSitterC_TreeSitterC.bundle/queries/highlights.scm".URLGet()
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterC_TreeSitterC.bundle/queries/highlights.scm")
+            ])
+            break
+        case "hpp","cpp":
+            loadLanguage(language: tree_sitter_cpp(), highlightsURL: [
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterC_TreeSitterC.bundle/queries/highlights.scm"),
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterCPP_TreeSitterCPP.bundle/queries/highlights.scm")
             ])
             break
         case "xml","plist":
             loadLanguage(language: tree_sitter_xml(), highlightsURL: [
-                "\(Bundle.main.bundlePath)/TreeSitterXML_TreeSitterXML.bundle/xml/highlights.scm".URLGet()
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterXML_TreeSitterXML.bundle/xml/highlights.scm")
             ])
             break
+        case "swift":
+            loadLanguage(language: tree_sitter_swift(), highlightsURL: [
+                URL(fileURLWithPath: "\(Bundle.main.bundlePath)/TreeSitterSwift_TreeSitterSwift.bundle/queries/highlights.scm")
+            ])
         default:
             break
         }
             
         self.textView.translatesAutoresizingMaskIntoConstraints = false
+        self.textView.contentInsetAdjustmentBehavior = .always
         self.view.addSubview(textView)
         
         NSLayoutConstraint.activate([
@@ -247,13 +265,28 @@ class CodeEditorViewController: UIViewController {
             }
         }
         
-        self.coordinator = Coordinator(parent: self)
+        self.coordinator = CodeEditorCoordinator(parent: self)
         self.textView.editorDelegate = self.coordinator
         
-        self.goto(line: line, column: column)
+        self.goto(location: self.location)
     }
     
-    func goto(line: UInt64?, column: UInt64?) {
+    func documentRequestsText(_ document: NXDocument!) -> String! {
+        guard let project = self.project,
+              let database = self.database,
+              let _ = self.languageServer,
+              let coordinator = self.coordinator else { return self.textView.text }
+        
+        database.setFileDebug(ofPath: self.file.fileURL.path, synItems: coordinator.diag)
+        database.saveDatabase(toPath: project.cacheURL.appendingPathComponent("debug.json").path)
+        
+        return self.textView.text
+    }
+    
+    func goto(location: MDKSourceLocation?) {
+        let line = location?.line
+        let column = location?.column
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             guard let line = line, line > 0 else { return }
             let column = column.map { $0 > 0 ? $0 - 1 : 0 } ?? 0
@@ -485,17 +518,11 @@ class CodeEditorViewController: UIViewController {
             let toolbar = UIToolbar()
             toolbar.sizeToFit()
             
-            if #available(iOS 15.0, *) {
-                let appearance = UIToolbarAppearance()
-                appearance.configureWithOpaqueBackground()
-                appearance.backgroundColor = theme.gutterBackgroundColor
-                toolbar.standardAppearance = appearance
-                toolbar.scrollEdgeAppearance = appearance
-            } else {
-                toolbar.barTintColor = theme.gutterBackgroundColor
-                toolbar.backgroundColor = theme.gutterBackgroundColor
-                toolbar.isTranslucent = false
-            }
+            let appearance = UIToolbarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = theme.gutterBackgroundColor
+            toolbar.standardAppearance = appearance
+            toolbar.scrollEdgeAppearance = appearance
             
             toolbar.items = items
             textView.inputAccessoryView = toolbar
@@ -517,18 +544,22 @@ class CodeEditorViewController: UIViewController {
         guard let userInfo = notification.userInfo,
               let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
               let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        let keyboardInView = view.convert(keyboardFrame, from: nil)
+        let overlap = max(0, view.bounds.maxY - keyboardInView.minY)
 
         let bottomInset: CGFloat
 
-        if #available(iOS 26.0, *), let floatingToolbar = self.floatingToolbar {
-            bottomInset = (keyboardFrame.height - view.safeAreaInsets.bottom) + (floatingToolbar.frame.height + 10)
+        if #available(iOS 26.0, *),
+           let floatingToolbar = self.floatingToolbar {
+            bottomInset = overlap + floatingToolbar.frame.height + 10
             floatingToolbar.isHidden = false
             floatingToolbarBottomConstraint?.constant = -(keyboardFrame.height + 8)
             UIView.animate(withDuration: duration) { self.view.layoutIfNeeded() }
         } else {
-            bottomInset = keyboardFrame.height
+            bottomInset = overlap
         }
-
+        
         textView.contentInset.bottom = bottomInset
         textView.verticalScrollIndicatorInsets.bottom = bottomInset
     }
@@ -548,8 +579,6 @@ class CodeEditorViewController: UIViewController {
             UIView.animate(withDuration: duration) {
                 self.floatingToolbarBottomConstraint?.constant = 100
                 self.view.layoutIfNeeded()
-            } completion: { _ in
-                floatingToolbar.isHidden = true
             }
         }
     }
@@ -557,22 +586,22 @@ class CodeEditorViewController: UIViewController {
     @objc func saveText() {
         if !self.isReadOnly {
             defer {
-                try? self.textView.text.write(to: URL(fileURLWithPath: self.path), atomically: true, encoding: .utf8)
+                self.document?.autosave()
             }
             
-            showSaveAnimation()
+            show保存Animation()
             
             guard let project = self.project,
                   let database = self.database,
-                  let _ = self.synpushServer,
+                  let _ = self.languageServer,
                   let coordinator = self.coordinator else { return }
             
-            database.setFileDebug(ofPath: self.path, synItems: coordinator.diag)
-            database.saveDatabase(toPath: "\(project.cachePath!)/debug.json")
+            database.setFileDebug(ofPath: self.file.fileURL.path, synItems: coordinator.diag)
+            database.saveDatabase(toPath: project.cacheURL.appendingPathComponent("debug.json").path)
         }
     }
     
-    private func showSaveAnimation() {
+    private func show保存Animation() {
         if UIDevice.current.userInterfaceIdiom == .pad {
             let layer = view.layer
             
@@ -603,34 +632,45 @@ class CodeEditorViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidUndoChange, object: textView.undoManager)
         NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidRedoChange, object: textView.undoManager)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDidCloseUndoGroup, object: textView.undoManager)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateUndoRedoButtons), name: .NSUndoManagerDid关闭UndoGroup, object: textView.undoManager)
         
-        if #unavailable(iOS 26.0) {
-            if UIDevice.current.userInterfaceIdiom == .pad {
-                NotificationCenter.default.addObserver(self, selector: #selector(hardwareKeyboardDidConnect), name: .GCKeyboardDidConnect, object: nil)
-                NotificationCenter.default.addObserver(self, selector: #selector(hardwareKeyboardDidDisconnect), name: .GCKeyboardDidDisconnect, object: nil)
-            }
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NotificationCenter.default.addObserver(self, selector: #selector(hardwareKeyboardDidConnect), name: .GCKeyboardDidConnect, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(hardwareKeyboardDidDisconnect), name: .GCKeyboardDidDisconnect, object: nil)
+        }
+        
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            self.coordinator?.textViewDidChange(self.textView)
         }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
+        self.document?.autosave()
+        self.coordinator?.debounce?.invalidate()
+        self.languageServer?.releaseMemory()
         super.viewWillDisappear(animated)
         NotificationCenter.default.removeObserver(self)
     }
     
     @objc private func hardwareKeyboardDidConnect(_ notification: Notification) {
-        textView.inputAccessoryView = nil
-        textView.reloadInputViews()
+        textView.resignFirstResponder()
+        if #unavailable(iOS 26.0) {
+            textView.inputAccessoryView = nil
+            textView.reloadInputViews()
+        }
     }
         
     @objc private func hardwareKeyboardDidDisconnect(_ notification: Notification) {
-        setupToolbar(textView: textView)
-        textView.reloadInputViews()
+        textView.resignFirstResponder()
+        if #unavailable(iOS 26.0) {
+            setupToolbar(textView: textView)
+            textView.reloadInputViews()
+        }
     }
     
     override var keyCommands: [UIKeyCommand]? {
         return [
-            UIKeyCommand(title: "Save File",
+            UIKeyCommand(title: "保存文件",
                          action: #selector(saveText),
                          input: "S",
                          modifierFlags: .command)
@@ -647,11 +687,11 @@ class CodeEditorViewController: UIViewController {
     }
     
     @objc func jumpToDefinition() {
-        guard let server = synpushServer else { return }
+        guard let server = languageServer else { return }
         guard let selectedRange = textView.selectedTextRange else { return }
         
         DispatchQueue.global(qos: .userInitiated).async {
-            let flags: [String] = self.isReadOnly ? NXProjectConfig.sdkCompilerFlags() as! [String] : self.project?.projectConfig.compilerFlags as! [String]
+            let flags: [String] = (self.isReadOnly ? NXProjectConfig.sdkCompilerFlags() : self.project?.projectConfig.compilerFlags)!
             server.reparseFile(self.textView.text, withArgs: flags)
             
             DispatchQueue.main.async {
@@ -662,7 +702,7 @@ class CodeEditorViewController: UIViewController {
                 let (line, column) = self.offsetToLineColumn(text: text, offset: offset)
                 
                 DispatchQueue.global(qos: .userInitiated).async {
-                    guard let def = server.getDefinitionAtLine(UInt32(line), column: UInt32(column)) else {
+                    guard let def = server.getDefinitionAt(MDKSourceLocationMake(line, column)) else {
                         DispatchQueue.main.async {
                             self.showNoDefinitionFound()
                         }
@@ -696,15 +736,15 @@ class CodeEditorViewController: UIViewController {
         return (line, column)
     }
     
-    private func openDefinition(_ def: Syndef) {
+    private func openDefinition(_ def: MDKFileSourceLocation) {
         /* check if definition is in the same file */
-        if def.filepath == self.path {
-            self.goto(line: UInt64(def.line), column: UInt64(def.column))
+        if def.fileURL == self.file.fileURL {
+            self.goto(location: def.location)
             return
         }
         
         /* check if file actually exists (could be a sdk header) */
-        let fileExists = FileManager.default.fileExists(atPath: def.filepath)
+        let fileExists = FileManager.default.fileExists(atPath: def.fileURL.path)
         
         if !fileExists {
             showNoDefinitionFound()
@@ -713,43 +753,49 @@ class CodeEditorViewController: UIViewController {
         
         /* open in a new read-only editor if its a system header, writable if its in the project */
         let isInsideProject: Bool
-        if let project = self.project, let projectPath = project.path {
-            isInsideProject = def.filepath.hasPrefix(projectPath)
+        if let project = self.project {
+            isInsideProject = def.fileURL.path.hasPrefix(project.url.path)
         } else {
             isInsideProject = false
         }
         
         if UIDevice.current.userInterfaceIdiom != .pad {
-            let destEditor = CodeEditorViewController(project: isInsideProject ? self.project : nil, path: def.filepath, line: UInt64(def.line), column: UInt64(def.column), isReadOnly: !isInsideProject)
+            guard let destEditor = CodeEditorViewController(project: isInsideProject ? self.project : nil, url: def.fileURL, line: def.location.line, column: def.location.column, isReadOnly: !isInsideProject) else {
+                return
+            }
             let destEditorNav = UINavigationController(rootViewController: destEditor)
             destEditorNav.modalPresentationStyle = .pageSheet
             self.present(destEditorNav, animated: true);
         } else {
-            NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["open",def.filepath,"\(def.line)","\(def.column)", isInsideProject ? "0" : "1"])
+            NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["open",def.fileURL.path,"\(def.location.line)","\(def.location.column)", isInsideProject ? "0" : "1"])
         }
     }
     
     private func showNoDefinitionFound() {
         let alert = UIAlertController(
-            title: "No Definition Found",
-            message: "Could not find a definition for the symbol at the cursor.",
+            title: "未找到定义",
+            message: "无法找到光标处符号的定义。",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: "好", style: .default))
         self.present(alert, animated: true)
     }
     
     override func buildMenu(with builder: any UIMenuBuilder) {
         super.buildMenu(with: builder)
         
-        guard self.synpushServer != nil else {
+        guard self.languageServer != nil else {
             return
         }
         
-        let myAction = UIAction(title: "Jump To Definition", image: UIImage(systemName: "cursorarrow")) { _ in
+        let myAction = UIAction(title: "跳转到定义", image: UIImage(systemName: "cursorarrow")) { _ in
             self.jumpToDefinition()
         }
 
         builder.insertChild(UIMenu(options: .displayInline, children: [myAction]), atEndOfMenu: .standardEdit)
+    }
+    
+    deinit {
+        NXDocumentManager.shared().close(URL(fileURLWithPath: self.file.fileURL.path), completion: nil)
     }
 }

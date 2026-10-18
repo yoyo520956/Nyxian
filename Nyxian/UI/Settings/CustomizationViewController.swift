@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -22,22 +22,18 @@
 import UIKit
 import Runestone
 
-class CustomizationViewController: UIThemedTableViewController {
+class CustomizationViewController: NXUITableViewController {
     var textField: UITextField?
     
     var currentIconName: String {
         UIApplication.shared.alternateIconName ?? "Default"
     }
     
-    var icons: [String] = [
-        "Default",
-        "Drawn",
-        "Nyxcat",
-        "Nyxcat2",
-        "Nyxcat3"
-    ]
+    var icons: [String] = (["Default"] + Bundle.main.alternateIconNames).sorted {
+        $0.localizedStandardCompare($1) == .orderedAscending
+    }
     
-    var themePreviewCell: ThemePickerPreviewCell?
+    var themePreviewCell: 主题PickerPreviewCell?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -52,7 +48,7 @@ class CustomizationViewController: UIThemedTableViewController {
         case 0:
             return "Credentials"
         case 1:
-            return "Themes"
+            return "主题s"
         case 2:
             return "Icons"
         default:
@@ -82,11 +78,7 @@ class CustomizationViewController: UIThemedTableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
         case 0:
-#if !JAILBREAK_ENV
             return 2
-#else
-            return 1
-#endif // !JAILBREAK_END
         case 1:
             return 8
         case 2:
@@ -100,22 +92,18 @@ class CustomizationViewController: UIThemedTableViewController {
         let cell: UITableViewCell
         
         if indexPath.section == 0 {
-#if !JAILBREAK_ENV
             if indexPath.row == 0 {
-                cell = NXTextFieldTableCell(title: "Username", hint: "Anonym", key: "LDEUsername", defaultValue: "Anonym")
+                cell = NXTextFieldTableCell(title: "用户名", hint: "Anonym", key: "LDE用户名", defaultValue: "Anonym")
             } else {
-                cell = NXTextFieldTableCell(title: "Hostname", hint: "localhost", key: "LDEHostname", defaultValue: "localhost") { newValue in
+                cell = NXTextFieldTableCell(title: "主机名", hint: "localhost", key: "LDE主机名", defaultValue: "localhost") { newValue in
                     ksurface_sethostname(newValue)
                 }
             }
-#else
-            cell = NXTextFieldTableCell(title: "Username", hint: "i.e Anonymous", key: "LDEUsername", defaultValue: "Anonym")
-#endif // !JAILBREAK_END
         } else if indexPath.section == 1 {
             if indexPath.row == 0 {
-                themePreviewCell = ThemePickerPreviewCell()
+                themePreviewCell = 主题PickerPreviewCell()
                 cell = themePreviewCell!
-                (cell as! ThemePickerPreviewCell).populate(with: ThemePickerPreviewCell.ViewModel(theme: LDEThemeReader.shared.currentlySelectedTheme(), text: """
+                (cell as! 主题PickerPreviewCell).populate(with: 主题PickerPreviewCell.ViewModel(theme: LDE主题Reader.shared.currentlySelected主题(), text: """
 #include <stdio.h>
 
 int main(void)
@@ -126,55 +114,49 @@ int main(void)
 """))
             } else if indexPath.row == 1 {
                 var options: [String] = []
-                for theme in LDEThemeReader.shared.themes {
+                for theme in LDE主题Reader.shared.themes {
                     options.append(theme.name)
                 }
-                cell = PickerTableCell(options: options, title: "Theme", key: "LDETheme", defaultValue: 0)
+                cell = PickerTableCell(options: options, title: "主题", key: "LDE主题", defaultValue: 0)
                 (cell as! PickerTableCell).callback = { selected in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.themes[selected])
-                    LDEThemeReader.shared.selectedThemeIndex = selected
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.themes[selected])
+                    LDE主题Reader.shared.selected主题Index = selected
                     RevertUI()
                 }
             } else if indexPath.row == 2 {
-                cell = StepperTableCell(title: "Font Size", key: "LDEFontSize", defaultValue: 10, minValue: 8, maxValue: 15)
+                cell = StepperTableCell(title: "字体大小", key: "LDEFontSize", defaultValue: 12, minValue: 6, maxValue: 20)
                 (cell as! StepperTableCell).callback = { newValue in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.currentlySelectedTheme())
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.currentlySelected主题())
                 }
             } else if indexPath.row == 3 {
                 cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-                (cell as! ToggleTableCell).configure(title: "Show Line Numbers", key: "LDEShowLineNumbers", defaultValue: true) { newValue in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.currentlySelectedTheme())
+                (cell as! ToggleTableCell).configure(title: "显示行号", key: "LDEShowLineNumbers", defaultValue: true) { newValue in
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.currentlySelected主题())
                 }
             } else if indexPath.row == 4 {
                 cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-                (cell as! ToggleTableCell).configure(title: "Show Spaces", key: "LDEShowSpaces", defaultValue: true) { newValue in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.currentlySelectedTheme())
+                (cell as! ToggleTableCell).configure(title: "显示空格", key: "LDEShowSpaces", defaultValue: true) { newValue in
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.currentlySelected主题())
                 }
             } else if indexPath.row == 5 {
                 cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-                (cell as! ToggleTableCell).configure(title: "Wrap Lines", key: "LDEWrapLines", defaultValue: true) { newValue in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.currentlySelectedTheme())
+                (cell as! ToggleTableCell).configure(title: "自动换行", key: "LDEWrapLines", defaultValue: true) { newValue in
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.currentlySelected主题())
                 }
             } else if indexPath.row == 6 {
                 cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-                (cell as! ToggleTableCell).configure(title: "Show Line Breaks", key: "LDEShowLineBreaks", defaultValue: true) { newValue in
-                    self.themePreviewCell!.switchTheme(theme: LDEThemeReader.shared.currentlySelectedTheme())
+                (cell as! ToggleTableCell).configure(title: "显示换行符", key: "LDEShowLineBreaks", defaultValue: true) { newValue in
+                    self.themePreviewCell!.switch主题(theme: LDE主题Reader.shared.currentlySelected主题())
                 }
             } else {
                 cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-                (cell as! ToggleTableCell).configure(title: "Autoindent", key: "LDEAutoindent", defaultValue: true)
+                (cell as! ToggleTableCell).configure(title: "自动缩进", key: "LDE自动缩进", defaultValue: true)
             }
         } else {
             cell = UITableViewCell(style: .default, reuseIdentifier: nil)
             let iconName = icons[indexPath.row]
             
-            if let image = UIImage(named: {
-                if #available(iOS 18.0, *) {
-                    return "IconPreview\(iconName)"
-                } else {
-                    return "IconPreview\(iconName)Old"
-                }
-            }()) {
+            if let image = UIImage(named: "IconPreview\(iconName)") {
                 let customImageView = UIImageView(image: image)
                 
                 if #available(iOS 26.0, *)

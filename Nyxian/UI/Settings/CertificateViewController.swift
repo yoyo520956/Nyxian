@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -22,54 +22,49 @@
 import UIKit
 import UniformTypeIdentifiers
 
-class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
+class Certificate导入er: NXUITableViewController, UITextFieldDelegate {
     var textField: NXTextFieldTableCell?
     
-    var cert: ImportTableCell?
-    let callback: () -> Void
+    var cert: Complex导入TableCell?
     
-    let sectionTitles: [String] = [
-        "Certificate",
-        "Password"
-    ]
-    
-    init(style: UITableView.Style,
-         callback: @escaping () -> Void) {
-        self.callback = callback
-        super.init(style: style)
-    }
-    
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    let importButton: UIBarButtonItem = UIBarButtonItem()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.title = "Import Certificate"
+        self.isModalInPresentation = true
+        self.navigationController?.isModalInPresentation = true
+        self.title = "设置签名"
         
-        let barbutton: UIBarButtonItem = UIBarButtonItem()
-        barbutton.title = "Submit"
-        barbutton.target = self
-        barbutton.action = #selector(importButton)
-        navigationItem.rightBarButtonItem = barbutton
+        importButton.title = "导入"
+        importButton.target = self
+        importButton.action = #selector(importButtonTapped)
+        if #available(iOS 26.0, *) {
+            importButton.style = .prominent
+        }
+        
+        let cancelButton: UIBarButtonItem = UIBarButtonItem()
+        cancelButton.title = "取消"
+        cancelButton.target = self
+        cancelButton.action = #selector(closeButtonTapped)
+        
+        navigationItem.rightBarButtonItem = importButton
+        navigationItem.leftBarButtonItem = cancelButton
         
         self.tableView.translatesAutoresizingMaskIntoConstraints = false
         self.tableView.isScrollEnabled = false
         self.tableView.rowHeight = UITableView.automaticDimension
         
         if UIDevice.current.userInterfaceIdiom == .phone {
-            if #available(iOS 16.0, *) {
-                if let sheet = self.navigationController?.sheetPresentationController {
-                    DispatchQueue.main.async {
-                        sheet.animateChanges {
-                            sheet.detents = [
-                                .custom { context in
-                                    let contentHeight = self.tableView.contentSize.height + 50
-                                    return contentHeight
-                                }
-                            ]
-                        }
+            if let sheet = self.navigationController?.sheetPresentationController {
+                DispatchQueue.main.async {
+                    sheet.animateChanges {
+                        sheet.detents = [
+                            .custom { context in
+                                let contentHeight = self.tableView.contentSize.height + 50
+                                return contentHeight
+                            }
+                        ]
                     }
                 }
             }
@@ -80,20 +75,18 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
         return 1
     }
     
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return sectionTitles[section]
-    }
-    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell: UITableViewCell
         
         switch indexPath.section {
         case 0:
-            cert = ImportTableCell(parent: self)
+            cert = Complex导入TableCell(parent: self)
             cell = cert!
             break
         case 1:
-            textField = NXTextFieldTableCell(title: "", hint: "i.e 123456", key: nil, defaultValue: "")
+            textField = NXTextFieldTableCell(title: "密码", hint: "输入证书密码", key: nil, defaultValue: "")
+            textField!.textField.isSecureTextEntry = true
+            textField!.textField.textContentType = .password
             cell = textField!
             break
         default:
@@ -102,6 +95,15 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
         }
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        switch section {
+            case 1:
+                return "证书和密码仅用于替你签名 App，完全保存在你的设备上，不会上传。"
+            default:
+                return nil
+        }
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -117,21 +119,49 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
         return true
     }
     
-    @objc func importButton() {
-        do {
-            if let cert = cert,
-               let url = cert.url {
-                let p12Data: Data = try Data(contentsOf: url)
-                UserDefaults.standard.set(p12Data, forKey: "LCCertificateData")
-                UserDefaults.standard.set(textField?.text ?? "", forKey: "LCCertificatePassword")
-                UserDefaults.standard.set(NSDate.now, forKey: "LCCertificateUpdateDate")
+    @objc func importButtonTapped() {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.startAnimating()
+        navigationItem.setRightBarButton(UIBarButtonItem(customView: spinner), animated: true)
+        
+        let cert = self.cert
+        let password = self.textField?.text ?? ""
+        
+        DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            do {
+                if let cert = cert,
+                   let url = cert.url {
+                    let p12Data: Data = try Data(contentsOf: url)
+                    
+                    LCUtils.validateCertificate(withCertificateData: p12Data, with密码: password) { [weak self] status, someWords in
+                        guard let self = self else { return }
+                        if status == 0 {
+                            LCUtils.certificateData = p12Data
+                            LCUtils.certificate密码 = password
+                            DispatchQueue.main.async {
+                                self.dismiss(animated: true)
+                            }
+                            return
+                        }
+                        NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: someWords ?? "导入证书时发生未知问题，请反馈此问题。(error = \(status))", withDelay: 0.0)
+                        DispatchQueue.main.async {
+                            self.navigationItem.setRightBarButton(self.importButton, animated: true)
+                        }
+                    }
+                } else {
+                    guard let self = self else { return }
+                    NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "请先选择一个证书。", withDelay: 0.0)
+                    DispatchQueue.main.async {
+                        self.navigationItem.setRightBarButton(self.importButton, animated: true)
+                    }
+                }
+            } catch {
+                NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "导入证书时出错！(\(error.localizedDescription))", withDelay: 0.0)
             }
-        } catch {
-            NotificationServer.NotifyUser(level: .error, notification: "Something went wrong importing the certificate! \(error.localizedDescription)")
         }
-        
+    }
+    
+    @objc func closeButtonTapped() {
         self.dismiss(animated: true)
-        
-        callback()
     }
 }

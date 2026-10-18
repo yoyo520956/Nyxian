@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -23,7 +23,7 @@ import Foundation
 import UIKit
 import UniformTypeIdentifiers
 
-class ImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
+class 导入TableCell: UITableViewCell, UIDocumentPickerDelegate {
 
     private weak var parent: UIViewController?
     private(set) var url: URL?
@@ -44,7 +44,7 @@ class ImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
     private func setupViews() {
         selectionStyle = .none
 
-        importButton.setTitle("Import", for: .normal)
+        importButton.setTitle("导入", for: .normal)
         importButton.setTitleColor(UIColor.systemBlue, for: .normal)
         importButton.contentHorizontalAlignment = .left
         importButton.addTarget(self, action: #selector(openPicker), for: .touchUpInside)
@@ -64,7 +64,7 @@ class ImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
         let bounds = contentView.bounds
         let inset: CGFloat = 16
 
-        // Import button fills full height, standard Apple style
+        // 导入 button fills full height, standard Apple style
         importButton.frame = CGRect(
             x: inset,
             y: 0,

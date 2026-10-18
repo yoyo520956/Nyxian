@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -22,54 +22,197 @@
 import Foundation
 import UIKit
 
-// AppInfoView
-class CreditsViewController: UIThemedTableViewController {
+class 致谢ViewController: NXUITableViewController {
     
-#if !JAILBREAK_ENV
-    private var credits: [Credit] = [
-        Credit(name: "Frida", role: "Maintainer", githubURL: "https://github.com/cr4zyengineer"),
-        Credit(name: "LucaVmu", role: "Manager", githubURL: "https://github.com/LucaVmu"),
-        Credit(name: "Duy Tran", role: "LiveContainer", githubURL: "https://github.com/khanhduytran0"),
-        Credit(name: "Huge_Black", role: "LiveContainer", githubURL: "https://github.com/hugeBlack"),
-        Credit(name: "Vinogradov Daniil", role: "Massive help on LLVM-On-iOS", githubURL: "https://github.com/XITRIX"),
-        Credit(name: "light-tech", role: "LLVM-On-iOS", githubURL: "https://github.com/light-tech"),
-        Credit(name: "Lars Fröder", role: "Litehook", githubURL: "https://github.com/opa334"),
-        Credit(name: "ayame09", role: "Original Nyxian app icons", githubURL: "https://github.com/ayayame09"),
-        Credit(name: "sxdev", role: "Drawn app icons", githubURL: "https://github.com/SamoXcZ"),
-        Credit(name: "xzadik", role: "Nyxcat app icons", githubURL: "https://github.com/xzadik"),
+    struct CreditSection {
+        let title: String
+        let credits: [Credit]
+    }
+    
+    private let sections: [CreditSection] = [
+        CreditSection(
+            title: "团队",
+            credits: [
+                Credit(
+                    name: "emexLabs",
+                    role: "维护者",
+                    ghuser: "emexlab"
+                ),
+                Credit(
+                    name: "Nyxia",
+                    role: "维护者",
+                    ghuser: "mach-port-t"
+                ),
+                Credit(
+                    name: "Catelyn",
+                    role: "开发者",
+                    ghuser: "mimalloc"
+                ),
+                Credit(
+                    name: "LucaVmu",
+                    role: "开发者",
+                    ghuser: "lucavmu"
+                ),
+            ]
+        ),
+        
+        CreditSection(
+            title: "安全研究者",
+            credits: [
+                Credit(
+                    name: "semvis123",
+                    role: "安全研究者",
+                    ghuser: "semvis123"
+                ),
+                Credit(
+                    name: "zipgod",
+                    role: "安全研究者",
+                    ghuser: "zipgod24"
+                )
+            ]
+        ),
+        
+        CreditSection(
+            title: "贡献者s",
+            credits: [
+                Credit(
+                    name: "Kyle",
+                    role: "Swift 支持",
+                    ghuser: "Kyle-Ye"
+                ),
+                Credit(
+                    name: "Ruri",
+                    role: "应用缓存清理",
+                    ghuser: "ruri1208"
+                ),
+                Credit(
+                    name: "Vinogradov Daniil",
+                    role: "LLVM-On-iOS",
+                    ghuser: "XITRIX"
+                ),
+                Credit(
+                    name: "엄세환",
+                    role: "贡献者",
+                    ghuser: "op06072"
+                ),
+                Credit(
+                    name: "L0tsen",
+                    role: "贡献者",
+                    ghuser: "l0tsen"
+                ),
+                Credit(
+                    name: "Offihito",
+                    role: "贡献者",
+                    ghuser: "Offihito"
+                )
+            ]
+        ),
+        
+        CreditSection(
+            title: "设计与图标",
+            credits: [
+                Credit(
+                    name: "ayame09",
+                    role: "Nyxian 原版图标",
+                    ghuser: "ayayame09"
+                ),
+                Credit(
+                    name: "sxdev",
+                    role: "手绘图标",
+                    ghuser: "SamoXcZ"
+                ),
+                Credit(
+                    name: "xzadik",
+                    role: "Nyxcat 图标",
+                    ghuser: "xzadik"
+                )
+            ]
+        ),
+        
+        CreditSection(
+            title: "开源项目",
+            credits: [
+                Credit(
+                    name: "LiveContainer",
+                    role: "LiveContainer",
+                    ghuser: "livecontainer"
+                ),
+                Credit(
+                    name: "LLVM",
+                    role: "llvm-project",
+                    ghuser: "llvm"
+                ),
+                Credit(
+                    name: "The Swift Programming Language",
+                    role: "swift",
+                    ghuser: "swiftlang"
+                ),
+                Credit(
+                    name: "Android Open Source Project",
+                    role: "安卓 Recovery 风格",
+                    ghuser: "aosp-mirror"
+                )
+            ]
+        ),
+        
+        CreditSection(
+            title: "外部项目",
+            credits: [
+                Credit(
+                    name: "Simon Støvring",
+                    role: "Runestone",
+                    ghuser: "simonbs"
+                ),
+                Credit(
+                    name: "light-tech",
+                    role: "LLVM-On-iOS",
+                    ghuser: "light-tech"
+                ),
+                Credit(
+                    name: "Lars Fröder",
+                    role: "Litehook",
+                    ghuser: "opa334"
+                ),
+                Credit(
+                    name: "lascic",
+                    role: "UIOnboarding",
+                    ghuser: "lascic"
+                ),
+                Credit(
+                    name: "Miguel de Icaza",
+                    role: "SwiftTerm",
+                    ghuser: "migueldeicaza"
+                )
+            ]
+        )
     ]
-#else
-    private var credits: [Credit] = [
-        Credit(name: "Frida", role: "Maintainer", githubURL: "https://github.com/cr4zyengineer"),
-        Credit(name: "LucaVmu", role: "Manager", githubURL: "https://github.com/LucaVmu"),
-        Credit(name: "Duy Tran", role: "FrontBoardAppLauncher", githubURL: "https://github.com/khanhduytran0"),
-        Credit(name: "Vinogradov Daniil", role: "Massive help on LLVM-On-iOS", githubURL: "https://github.com/XITRIX"),
-        Credit(name: "light-tech", role: "LLVM-On-iOS", githubURL: "https://github.com/light-tech"),
-        Credit(name: "Lars Fröder", role: "Litehook,Trollstore and libroot", githubURL: "https://github.com/opa334"),
-        Credit(name: "ayame09", role: "Original Nyxian app icons", githubURL: "https://github.com/ayayame09"),
-        Credit(name: "sxdev", role: "Drawn app icons", githubURL: "https://github.com/SamoXcZ"),
-        Credit(name: "xzadik", role: "Nyxcat app icons", githubURL: "https://github.com/xzadik"),
-    ]
-#endif // !JAILBREAK_ENV
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.title = "Credits"
+        self.title = "致谢"
         
         self.tableView.register(CreditCell.self, forCellReuseIdentifier: CreditCell.identifier)
     }
     
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
+        sections.count
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return credits.count
+        sections[section].credits.count
+    }
+    
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        sections[section].title
     }
     
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 80
+        if #available(iOS 26.0, *) {
+            return 90
+        } else {
+            return 80
+        }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -77,12 +220,14 @@ class CreditsViewController: UIThemedTableViewController {
             return UITableViewCell()
         }
         
-        let credit = credits[indexPath.row]
+        let credit = sections[indexPath.section].credits[indexPath.row]
+        
         cell.nameLabel.text = credit.name
         cell.roleLabel.text = credit.role
         
-        downloadImage(from: "\(credit.githubURL).png") { image in
-            cell.profileImageView.image = image ?? UIImage(systemName: "person.circle")
+        downloadImage(from: "https://avatars.githubusercontent.com/\(credit.ghuser)") { image in
+            cell.configureImage(image ?? UIImage(systemName: "person.fill"))
+            cell.layoutSubviews()
         }
         
         return cell
@@ -104,10 +249,12 @@ class CreditsViewController: UIThemedTableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let credit = credits[indexPath.row]
-        if let url = URL(string: credit.githubURL) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        let credit = sections[indexPath.section].credits[indexPath.row]
+        
+        if let url = URL(string: "https://github.com/\(credit.ghuser)") {
+            UIApplication.shared.open(url)
         }
+        
         tableView.deselectRow(at: indexPath, animated: true)
     }
 }

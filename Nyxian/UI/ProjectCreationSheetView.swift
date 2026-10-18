@@ -1,0 +1,197 @@
+/*
+ SPDX-License-Identifier: AGPL-3.0-or-later
+
+ Copyright (C) 2026 Kyle-Ye
+ Copyright (C) 2026 emexlab
+
+ This file is part of Nyxian.
+
+ Nyxian is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Affero General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ Nyxian is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU Affero General Public License for more details.
+
+ You should have received a copy of the GNU Affero General Public License
+ along with Nyxian. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import SwiftUI
+
+enum ProjectCreationStep {
+    case template
+    case options
+}
+
+struct ProjectCreationSheetView: View {
+    @ObservedObject var model: ProjectTemplateOptionsModel
+    let on取消: () -> Void
+    let on创建: () -> Void
+    
+    init(model: ProjectTemplateOptionsModel, on取消: @escaping () -> Void, on创建: @escaping () -> Void) {
+        self.model = model
+        self.on取消 = on取消
+        self.on创建 = on创建
+        
+        NXWindowServer.shared().unfocusFocusedWindow()
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Rectangle()
+                .fill(Color(uiColor: LDETheme.currentTheme!.gutterHairlineColor))
+                .frame(height: 1 / UIScreen.main.scale)
+            ScrollView {
+                Group {
+                    if model.step == .template {
+                        ProjectTemplateSelectionView(model: model)
+                    } else {
+                        ProjectTemplateOptionsView(model: model)
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+            Rectangle()
+                .fill(Color(uiColor: LDETheme.currentTheme!.gutterHairlineColor))
+                .frame(height: 1 / UIScreen.main.scale)
+            controls
+        }
+        .background(Color(uiColor: LDETheme.currentTheme!.backgroundColor))
+        .onAppear {
+            NXWindowServer.shared().windowsGetOutOfMyWay()
+        }
+        .onDisappear {
+            NXWindowServer.shared().windowsGetInMyWay()
+        }
+    }
+    
+    private var header: some View {
+        Text(model.step == .template ? "为你的新工程选择一个模板" : "为新工程选择选项")
+            .font(.title3.weight(.semibold))
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 14)
+            .foregroundColor(Color(LDETheme.currentTheme!.textColor))
+    }
+    
+    private var controls: some View {
+        HStack(spacing: 12) {
+            Button("取消", action: on取消)
+                .projectCreationSecondaryButtonStyle()
+            
+            Spacer(minLength: 12)
+            
+            if model.step == .options {
+                Button("上一步") {
+                    withAnimation(.snappy) { model.step = .template }
+                }
+                .projectCreationSecondaryButtonStyle()
+            }
+            
+            Button(model.step == .template ? "下一步" : "创建") {
+                if model.step == .template {
+                    withAnimation(.snappy) { model.step = .options }
+                } else {
+                    on创建()
+                }
+            }
+            .projectCreationPrimaryButtonStyle()
+        }
+        .controlSize(.large)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+}
+
+private struct ProjectCreationLegacyPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 44)
+            .foregroundStyle(Color(uiColor: LDETheme.currentTheme!.backgroundColor))
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color(uiColor: LDETheme.currentTheme!.textColor))
+                    .opacity(buttonOpacity(isPressed: configuration.isPressed))
+            }
+    }
+
+    private func buttonOpacity(isPressed: Bool) -> Double {
+        if !isEnabled {
+            return 0.25
+        }
+
+        return isPressed ? 0.72 : 1
+    }
+}
+
+private struct ProjectCreationPrimaryButtonModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(ProjectCreationLegacyPrimaryButtonStyle())
+    }
+}
+
+extension View {
+    func projectCreationPrimaryButtonStyle() -> some View {
+        modifier(ProjectCreationPrimaryButtonModifier())
+    }
+}
+
+private struct ProjectCreationLegacySecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 44)
+            .foregroundStyle(Color(uiColor: LDETheme.currentTheme!.textColor))
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color(uiColor: LDETheme.currentTheme!.backgroundColor))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(
+                                Color(uiColor: LDETheme.currentTheme!.gutterHairlineColor),
+                                lineWidth: 1
+                            )
+                    }
+                    .opacity(buttonOpacity(isPressed: configuration.isPressed))
+            }
+    }
+
+    private func buttonOpacity(isPressed: Bool) -> Double {
+        if !isEnabled { return 0.25 }
+        return isPressed ? 0.72 : 1
+    }
+}
+
+private struct ProjectCreationSecondaryButtonModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(ProjectCreationLegacySecondaryButtonStyle())
+    }
+}
+
+extension View {
+    func projectCreationSecondaryButtonStyle() -> some View {
+        modifier(ProjectCreationSecondaryButtonModifier())
+    }
+}

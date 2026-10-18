@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ Copyright (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -22,48 +22,21 @@
 import UIKit
 import UniformTypeIdentifiers
 
-#if !JAILBREAK_ENV
+extension UTType {
+    static var ipa: UTType {
+        UTType(filenameExtension: "ipa") ?? .zip
+    }
+    static var tipa: UTType {
+        UTType(importedAs: "com.cr4zy.nyxian.tipa", conformingTo: .zip)
+    }
+    static var nipa: UTType {
+        UTType(importedAs: "com.cr4zy.nyxian.nipa", conformingTo: .zip)
+    }
+}
 
-class ApplicationManagementViewController: UIThemedTableViewController, UITextFieldDelegate, UIDocumentPickerDelegate, UIAdaptivePresentationControllerDelegate {
-    @objc static var shared: ApplicationManagementViewController = ApplicationManagementViewController(style: .insetGrouped)
-    var applications: [LDEApplicationObject] = []
-    static let lock: NSLock = NSLock()
+class ApplicationManagementViewController: NXUITableViewController, UITextFieldDelegate, UIDocumentPickerDelegate, UIAdaptivePresentationControllerDelegate, LDEApplicationWorkspaceObserver {
     
-    let entitlementsContextMenuMappings: [(key: String, value: [(String, PEEntitlement)])] = [
-        ("Task Port (iOS 26.0 Only):powerplug.portrait.fill", [
-            ("Get Task Allowed", .getTaskAllowed),
-            ("Task For Pid", .taskForPid)
-        ]),
-        ("Process:cable.coaxial", [
-            ("Enumeration", .processEnumeration),
-            ("Kill", .processKill),
-            ("Spawn", .processSpawn),
-            ("Spawn (Signed Only)", .processSpawnSignedOnly),
-            ("Spawn (Inherite Entitlements)", .processSpawnInheriteEntitlements),
-            ("Elevate", .processElevate)
-        ]),
-        ("Host:pc", [
-            ("Host Manager", .hostManager),
-            //("Credentials Manager", .credentialsManager)
-        ]),
-        ("LaunchServices:bolt.fill", [
-            /*("Start", .launchServicesStart),
-            ("Stop", .launchServicesStop),
-            ("Toggle", .launchServicesToggle),*/
-            ("Get Endpoint", .launchServicesGetEndpoint),
-            //("Manager", .launchServicesManager),
-        ]),
-        /*("TrustCache:tray.full.fill", [
-            ("Read", .trustCacheRead),
-            ("Write", .trustCacheWrite),
-            ("Manager", .trustCacheManager)
-        ]),*/
-        ("Misc:ellipsis", [
-            ("Platform", .platform),
-            //("Enforce Device Spoof", .enforceDeviceSpoof),
-            ("DYLD Hide LiveProcess", .dyldHideLiveProcess)
-        ])
-    ]
+    var applications: [LDEApplicationObject] = []
     
     override init(style: UITableView.Style) {
         super.init(style: style)
@@ -75,10 +48,18 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.tableView.register(NXProjectTableCell.self, forCellReuseIdentifier: NXProjectTableCell.reuseIdentifier())
+        self.tableView.register(ProjectTableCell.self, forCellReuseIdentifier: ProjectTableCell.reuseIdentifier)
         LDEApplicationWorkspace.shared().ping()
         self.title = "Applications"
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Add", image: UIImage(systemName: "plus"), target: self, action: #selector(plusButtonPressed))
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: nil, image: UIImage(systemName: "square.and.arrow.down.fill"), target: self, action: #selector(plusButtonPressed))
+        
+        DispatchQueue.global().async {
+            self.applications = LDEApplicationWorkspace.shared().allApplicationObjects()
+            LDEApplicationWorkspace.shared().add(self)
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -91,54 +72,36 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let application: LDEApplicationObject = self.applications[indexPath.row]
-        let cell: NXProjectTableCell = self.tableView.dequeueReusableCell(withIdentifier: NXProjectTableCell.reuseIdentifier()) as! NXProjectTableCell
-        cell.configure(withDisplayName: application.displayName, withBundleIdentifier: application.bundleIdentifier, withAppIcon: application.icon, showAppIcon: true, showBundleID: true, showArrow: false)
+        let cell: ProjectTableCell = self.tableView.dequeueReusableCell(withIdentifier: ProjectTableCell.reuseIdentifier) as! ProjectTableCell
+        cell.configure(displayName: application.localizedName, bundleIdentifier: application.bundleIdentifier, appIcon: application.icon, darkAppIcon: application.darkIcon, showArrow: false)
         return cell
     }
     
     override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let application = self.applications[indexPath.row]
         
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak application] _ in
-            // MARK: Open Menu
-            let openMenu: UIMenuElement = UIAction(title: "Open", image: UIImage(systemName: "arrow.up.right.square.fill")) { _ in
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self, weak application] _ in
+            // MARK: 打开 Menu
+            let openMenu: UIMenuElement = UIAction(title: "打开", image: UIImage(systemName: "arrow.up.right.square.fill")) { _ in
                 guard let application = application else { return }
-                LDEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withKernelSurfaceProcess: kernel_proc(), doRestartIfRunning: false, outPipe: nil, in: nil, enableDebugging: false)
+                PEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withItems: [:], withKernelSurfaceProcess: nil, doRestartIfRunning: false)
             }
             
             var menu: [UIMenuElement] = [openMenu]
             
-            // MARK: Entitlement Menu
-            /*if let entHash: String = LDETrust.shared().entHashOfExecutable(atPath: application?.executablePath) {
-                let entitlement: PEEntitlement = TrustCache.shared().getEntitlementsForHash(entHash)
-                var entMenuItems: [UIMenu] = []
-                
-                for entry in self.entitlementsContextMenuMappings {
-                    let keyComponents: [String] = entry.key.components(separatedBy: ":")
-                    let subMenuTitle: String = keyComponents[0]
-                    let subMenuImageName: String = keyComponents[1]
-                    let subMenuItems: [(String,PEEntitlement)] = entry.value
-                    var children: [UIMenuElement] = []
-                    for subMenuItem in subMenuItems {
-                        children.append(self.createEntitlementButton(title: subMenuItem.0, entitlement: entitlement, targetEntitlement: subMenuItem.1, application: application))
-                    }
-                    entMenuItems.append(UIMenu(title: subMenuTitle, image: UIImage(systemName: subMenuImageName), children: children))
-                }
-                
-                let entMenu: UIMenu = UIMenu(title: "Entitlements", image: UIImage(systemName: "checkmark.seal.text.page.fill"), children: entMenuItems)
-                menu.append(entMenu)
-            }*/
-            
-            let clearContainerAction = UIAction(title: "Clear Data Container", image: UIImage(systemName: "arrow.up.trash.fill")) { _ in
+            let clearContainerAction = UIAction(title: "清除数据容器", image: UIImage(systemName: "arrow.up.trash.fill")) { _ in
                 guard let application = application else { return }
-                LDEProcessManager.shared().closeIfRunning(usingBundleIdentifier: application.bundleIdentifier)
+                if let process = PEProcessManager.shared().process(forBundleIdentifier: application.bundleIdentifier) {
+                    // It is unsafe to send SIGKILL, because data container is wiped
+                    process.sendSignal(SIGKILL)
+                }
                 LDEApplicationWorkspace.shared().clearContainer(forBundleID: application.bundleIdentifier)
             }
             
-            let deleteAction = UIAction(title: "Delete", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] _ in
+            let deleteAction = UIAction(title: "删除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] _ in
                 guard let self = self,
                       let application = application else { return }
-                LDEProcessManager.shared().closeIfRunning(usingBundleIdentifier: application.bundleIdentifier)
+                PEProcessManager.shared().closeIfRunning(usingBundleIdentifier: application.bundleIdentifier)
                 if(LDEApplicationWorkspace.shared().deleteApplication(withBundleID: application.bundleIdentifier)) {
                     if let index = self.applications.firstIndex(where: { $0.bundleIdentifier == application.bundleIdentifier }) {
                         self.applications.remove(at: index)
@@ -147,7 +110,23 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 }
             }
             
-            menu.append(contentsOf: [clearContainerAction, deleteAction])
+            let browseBundle = UIAction(title: "浏览程序包", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
+                guard let self = self,
+                      let application = application else { return }
+                
+                self.navigationController?.pushViewController(FileListViewController(isSublink: true, path: application.bundlePath), animated: true)
+            }
+            
+            let browseContainer = UIAction(title: "浏览容器", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
+                guard let self = self,
+                      let application = application else { return }
+                
+                self.navigationController?.pushViewController(FileListViewController(isSublink: true, path: application.containerPath), animated: true)
+            }
+            
+            // TODO: add a info panel for it like in files Get Info
+            menu.append(UIMenu(options: .displayInline, children: [browseBundle, browseContainer]))
+            menu.append(UIMenu(options: .displayInline, children: [clearContainerAction, deleteAction]))
             
             return UIMenu(title: "", children: menu)
         }
@@ -156,17 +135,35 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let application = self.applications[indexPath.row]
-        LDEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withKernelSurfaceProcess: kernel_proc(), doRestartIfRunning: false, outPipe: nil, in: nil, enableDebugging: false)
+        let processIdentifier: pid_t = PEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withItems: [:], withKernelSurfaceProcess: nil, doRestartIfRunning: false)
+        if processIdentifier < 0 {
+            NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: “\(application.localizedName ?? "Unknown")”已不再可用, withDelay: 0.0)
+        }
     }
     
     @objc func plusButtonPressed() {
-        let documentPicker: UIDocumentPickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
+        let documentPicker: UIDocumentPickerViewController = UIDocumentPickerViewController(for打开ingContentTypes: [.ipa,.tipa,.nipa], asCopy: true)
         documentPicker.delegate = self
         documentPicker.modalPresentationStyle = .formSheet
         self.present(documentPicker, animated: true)
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        let alert = UIAlertController(title: nil, message: "正在验证", preferredStyle: .alert)
+        
+        let activityIndicator = UIActivityIndicatorView(style: .medium)
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicator.startAnimating()
+        
+        alert.view.addSubview(activityIndicator)
+        
+        NSLayoutConstraint.activate([
+            activityIndicator.centerYAnchor.constraint(equalTo: alert.view.centerYAnchor),
+            activityIndicator.trailingAnchor.constraint(equalTo: alert.view.trailingAnchor, constant: -20)
+        ])
+        
+        self.present(alert, animated: true)
+        
         DispatchQueue.global().async {
             do {
                 guard let selectedURL = urls.first else { return }
@@ -181,52 +178,186 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 guard unzipArchiveAtPath(selectedURL.path, unzipRoot) else { return }
                 let contents: [String] = try FileManager.default.contentsOfDirectory(atPath: payloadDir)
                 
-                guard let appBundlePathComponent = contents.first(where: { $0.URLGet().pathExtension == "app" }) else {
-                    NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: no .app bundle found")
+                guard let appBundlePathComponent = contents.first(where: { ($0 as NSString).pathExtension == "app" }) else {
+                    alert.dismiss(animated: true) {
+                        NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "安装应用失败：未找到 .app 程序包", withDelay: 0.0)
+                    }
                     return
                 }
                 
                 let appBundleFullPath = payloadDir.appending("/\(appBundlePathComponent)")
                 
                 guard let bundle = Bundle(path: appBundleFullPath) else {
-                    NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: invalid bundle path")
+                    alert.dismiss(animated: true) {
+                        NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "安装应用失败：程序包路径无效", withDelay: 0.0)
+                    }
                     return
                 }
                 
-                LCUtils.signAppBundle(withZSign: bundle.bundleURL) { [weak self] result, error in
-                    guard let self = self else { return }
-                    
-                    if result,
-                       LDEApplicationWorkspace.shared().installApplication(atBundlePath: bundle.bundleURL.path) {
-                        DispatchQueue.main.async {
-                            LDEProcessManager.shared().spawnProcess(withBundleIdentifier: bundle.bundleIdentifier, withKernelSurfaceProcess: kernel_proc(), doRestartIfRunning: false, outPipe: nil, in: nil, enableDebugging: false)
+                guard let executablePath = bundle.executablePath else {
+                    alert.dismiss(animated: true) {
+                        NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "安装应用失败：可执行文件路径无效", withDelay: 0.0)
+                    }
+                    return
+                }
+                
+                var final: [String: Any] = [:]
+                var isRootCATrusted: Bool = false;
+                if let executablePath = bundle.executablePath {
+                    var ent: [String: Any] = [:]
+                    var trust_nxt2 = ksurface_nxt2()
+                    let kr: kern_return_t = trust_nxt2_read(bundle.executablePath, &trust_nxt2)
+                    if(kr != 0) {
+                        if trust_nxt2.entitlements != nil {
+                            trust_nxt2.entitlements.release()
                         }
                     } else {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to sign or install application.")
+                        let unmanagedDict: Unmanaged<CFDictionary>? = trust_nxt2.entitlements
+                        if let cfDict = unmanagedDict?.takeRetainedValue() {
+                            let nsDict = cfDict as NSDictionary
+                            if let swiftDict = nsDict as? [String: Any] {
+                                ent = swiftDict
+                                withUnsafeBytes(of: trust_nxt2.cdhash) { rawBuffer in
+                                    let uint8Pointer = rawBuffer.bindMemory(to: UInt8.self).baseAddress!
+                                    if trust_nxt2.isValid && trust_nxt2.isCdHashValid && CDHashMatchesCodeDirectoryOfPath(executablePath, uint8Pointer) == KERN_SUCCESS {
+                                        isRootCATrusted = trust_nxt2.isSigned || trust_nxt2.needsResign
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if !ent.isEmpty {
+                        final = ent
+                    } else {
+                        var appleEnt: [String: Any] = [:]
+                        var outError: OSStatus = 0
+                        let unmanagedDict: Unmanaged<CFDictionary>? = CopyAppleCSEntitlementsForPath(executablePath as CFString, &outError);
+                        if let cfDict = unmanagedDict?.takeRetainedValue() {
+                            let nsDict = cfDict as NSDictionary
+                            if let swiftDict = nsDict as? [String: Any] {
+                                appleEnt = swiftDict
+                            }
+                        }
+                        
+                        var extractedEnt: [String: Any] = [:]
+                        let unmanagedDict2: Unmanaged<CFDictionary>? = ExtractNXT2OutOfAppleCSEntitlements(appleEnt as CFDictionary);
+                        if let cfDict = unmanagedDict2?.takeRetainedValue() {
+                            let nsDict = cfDict as NSDictionary
+                            if let swiftDict = nsDict as? [String: Any] {
+                                extractedEnt = swiftDict
+                            }
+                        }
+                        final = extractedEnt
                     }
                 }
+                
+                // Gated :3
+                let proceedWith安装: () -> Void = {
+                    DispatchQueue.main.async {
+                        let alert = UIAlertController(title: nil, message: "正在安装", preferredStyle: .alert)
+                        
+                        let activityIndicator = UIActivityIndicatorView(style: .medium)
+                        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+                        activityIndicator.startAnimating()
+                        
+                        alert.view.addSubview(activityIndicator)
+                        
+                        NSLayoutConstraint.activate([
+                            activityIndicator.centerYAnchor.constraint(equalTo: alert.view.centerYAnchor),
+                            activityIndicator.trailingAnchor.constraint(equalTo: alert.view.trailingAnchor, constant: -20)
+                        ])
+                        
+                        self.present(alert, animated: true)
+                        
+                        checkSigningSetup() { codeSignigSetup in
+                            if !codeSignigSetup {
+                                alert.dismiss(animated: true)
+                                return
+                            }
+                            
+                            DispatchQueue.global().async {
+                                LCUtils.signAppBundle(withZSign: bundle.bundleURL) { result, error in
+                                    if result {
+                                        PEProcessManager.shared().closeIfRunning(usingBundleIdentifier: bundle.bundleIdentifier)
+                                        
+                                        trust_nxt2_sign((executablePath as NSString).utf8String, final as CFDictionary, true, nil)
+                                        
+                                        if LDEApplicationWorkspace.shared().installApplication(atBundlePath: bundle.bundleURL.path) {
+                                            DispatchQueue.main.async {
+                                                alert.dismiss(animated: true)
+                                            }
+                                        } else {
+                                            DispatchQueue.main.async {
+                                                alert.dismiss(animated: true) {
+                                                    NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "签名或安装应用失败。", withDelay: 0.0)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        DispatchQueue.main.async {
+                                            alert.dismiss(animated: true) {
+                                                NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "签名或安装应用失败。", withDelay: 0.0)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // The app indeed wants something bruh
+                DispatchQueue.main.async {
+                    alert.dismiss(animated: true) {
+                        if !final.isEmpty, !isRootCATrusted {
+                            let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Unknown"
+                            let alert = UIAlertController(
+                                title: "安装“\(displayName)”？",
+                                message: nil,
+                                preferredStyle: .alert
+                            )
+                            
+                            let fullMessage = NSMutableAttributedString()
+                            fullMessage.append(KSurfaceNXT2CreateEntitlementSummary(final))
+                            alert.setValue(fullMessage, forKey: "attributedMessage")
+                            
+                            alert.addAction(UIAlertAction(title: "安装", style: .default) { _ in
+                                DispatchQueue.global().async {
+                                    _ = proceedWith安装()
+                                }
+                            })
+                            
+                            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+                            
+                            self.present(alert, animated: true)
+                        } else {
+                            DispatchQueue.global().async {
+                                _ = proceedWith安装()
+                            }
+                        }
+                    }
+                }
+                
             } catch {
-                NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: \(error.localizedDescription)")
+                NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "安装应用失败：\(error.localizedDescription)", withDelay: 0.0)
             }
         }
     }
     
-    private func createEntitlementButton(title: String, entitlement: PEEntitlement, targetEntitlement: PEEntitlement, application: LDEApplicationObject?) -> UIAction {
-        var entitlement: PEEntitlement = entitlement
-        return UIAction(title: title, image: UIImage(systemName: entitlement.contains(targetEntitlement) ? "checkmark.circle.fill" : "circle")) { [weak application] _ in
-            guard let application = application else { return }
-            if entitlement.contains(targetEntitlement) {
-                entitlement.remove(targetEntitlement)
-            } else {
-                entitlement.insert(targetEntitlement)
-            }
-            //let entHash: String = LDETrust.shared().entHashOfExecutable(atPath: application.executablePath)
-            //TrustCache.shared().setEntitlementsForHash(entHash, usingEntitlements: entitlement)
-            LDEProcessManager.shared().closeIfRunning(usingBundleIdentifier: application.bundleIdentifier)
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        if #available(iOS 26.0, *) {
+            return 80
+        } else {
+            return 70
         }
     }
     
-    @objc func applicationWasInstalled(_ app: LDEApplicationObject!) {
+    func applicationInitialPopulationDone() {
+        self.applications = LDEApplicationWorkspace.shared().allApplicationObjects()
+    }
+    
+    func applicationWas安装ed(_ app: LDEApplicationObject!) {
         DispatchQueue.main.async {
             if let index = self.applications.firstIndex(of: app) {
                 self.applications[index] = app
@@ -245,7 +376,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
         }
     }
     
-    @objc func application(withBundleIdentifierWasUninstalled bundleIdentifier: String!) {
+    func application(withBundleIdentifierWasUninstalled bundleIdentifier: String!) {
         DispatchQueue.main.async {
             let temp = LDEApplicationObject()
             temp.bundleIdentifier = bundleIdentifier
@@ -259,13 +390,10 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
         }
     }
     
-    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        if #available(iOS 26.0, *) {
-            return 80
-        } else {
-            return 70
+    @objc func removeAllApplications() {
+        self.applications = []
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
         }
     }
 }
-
-#endif // !JAILBREAK_ENV

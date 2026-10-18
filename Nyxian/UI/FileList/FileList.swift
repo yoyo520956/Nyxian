@@ -1,7 +1,7 @@
 /*
  SPDX-License-Identifier: AGPL-3.0-or-later
 
- Copyright (C) 2025 - 2026 cr4zyengineer
+ 拷贝right (C) 2025 - 2026 emexlab
 
  This file is part of Nyxian.
 
@@ -22,32 +22,32 @@
 import UIKit
 import UniformTypeIdentifiers
 
-@objc class FileListViewController: UIThemedTableViewController, UIDocumentPickerDelegate {
-    let project: NXProject?
+class 文件ListViewController: NXUITableViewController, UIDocumentPickerDelegate {
+    let project: NX工程?
     let path: String
-    var entries: [FileListEntry]
+    var entries: [文件ListEntry]
     let isSublink: Bool
     let isReadOnly: Bool
-    var isSelecting: Bool = false
+    var is选择ing: Bool = false
     var selectedPaths: Set<String> = []
+    
+    var observation: NSKeyValueObservation?
 
-    init(
-        isSublink: Bool = false,
-        project: NXProject?,
-        path: String? = nil,
-        isReadOnly: Bool = false
-    ) {
+    init(isSublink: Bool = false,
+         project: NX工程?,
+         path: String? = nil,
+         isReadOnly: Bool = false) {
         self.isReadOnly = isReadOnly
         self.project = project
         
         if let project = project {
-            NXUser.shared().projectName = project.projectConfig.displayName
-            self.path = path ?? project.path
+            NXUser.shared().project名称 = project.projectConfig.display名称
+            self.path = path ?? project.url.path
         } else {
             self.path = path ?? ""
         }
         
-        self.entries = FileListEntry.getEntries(ofPath: self.path)
+        self.entries = 文件ListEntry.getEntries(ofPath: self.path)
         self.isSublink = isSublink
         super.init(style: .insetGrouped)
         
@@ -55,14 +55,13 @@ import UniformTypeIdentifiers
         self.refreshControl?.addTarget(self, action: #selector(performRefresh), for: .valueChanged)
     }
     
-    @objc init(
-        isSublink: Bool = false,
-        path: String,
-        isReadOnly: Bool = false
-    ) {
+    init(isSublink: Bool = false,
+         path: String,
+         isReadOnly: Bool = false)
+    {
         self.project = nil
         self.path = path
-        self.entries = FileListEntry.getEntries(ofPath: self.path)
+        self.entries = 文件ListEntry.getEntries(ofPath: self.path)
         self.isSublink = isSublink
         self.isReadOnly = isReadOnly
         super.init(style: .insetGrouped)
@@ -72,7 +71,13 @@ import UniformTypeIdentifiers
     }
     
     @objc func performRefresh() {
-        self.entries = FileListEntry.getEntries(ofPath: self.path)
+        if !self.isSublink, let project = self.project {
+            if project.reload() {
+                self.title = project.projectConfig.display名称
+            }
+        }
+        
+        self.entries = 文件ListEntry.getEntries(ofPath: self.path)
         self.refreshControl?.endRefreshing()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -84,7 +89,7 @@ import UniformTypeIdentifiers
             
             self.tableView.layoutIfNeeded()
             
-            guard let visibleCells = self.tableView.visibleCells as? [FileListCell] else { return }
+            guard let visibleCells = self.tableView.visibleCells as? [文件ListCell] else { return }
             
             visibleCells.forEach { cell in
                 cell.transform = CGAffineTransform(translationX: -30, y: 0)
@@ -102,114 +107,124 @@ import UniformTypeIdentifiers
     }
     
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatal错误("init(coder:) has not been implemented")
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.tableView.register(FileListCell.self, forCellReuseIdentifier: FileListCell.reuseIdentifier)
+        self.tableView.register(文件ListCell.self, forCellReuseIdentifier: 文件ListCell.reuseIdentifier)
         
         if let project = self.project {
-            self.title = self.isSublink ? URL(fileURLWithPath: self.path).lastPathComponent : project.projectConfig.displayName
+            if !self.isSublink {
+                observation = project.observe(\.projectConfig.dictionary, options: [.new, .old]) { [weak self] project, change in
+                    DispatchQueue.main.async {
+                        self?.title = project.projectConfig.display名称
+                    }
+                }
+                self.title = project.projectConfig.display名称
+            } else {
+                self.title = URL(fileURLWithPath: self.path).lastPathComponent
+            }
         } else {
             self.title = URL(fileURLWithPath: self.path).lastPathComponent
         }
         
         if UIDevice.current.userInterfaceIdiom == .pad, !self.isSublink {
-            self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "Close") { [weak self] _ in
+            self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "关闭") { [weak self] _ in
                 guard let self = self else { return }
-                UserDefaults.standard.set(nil, forKey: "LDELastProjectSelected")
+                UserDefaults.standard.set(nil, forKey: "LDELast工程选择ed")
                 self.dismiss(animated: true)
             }), animated: false)
         }
         
         if !self.isReadOnly {
             if #available(iOS 26.0, *) {
-                self.navigationItem.setRightBarButton(UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle.fill"), primaryAction: nil, menu: generateMenu()), animated: false)
+                self.navigationItem.setRightBarButton(UIBarButtonItem(image: UIImage(system名称: "ellipsis.circle.fill"), primaryAction: nil, menu: generateMenu()), animated: false)
             } else {
-                self.navigationItem.setRightBarButton(UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), primaryAction: nil, menu: generateMenu()), animated: false)
-            }
-        }
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        if !self.isSublink, let project = self.project {
-            if project.reload() {
-                self.title = project.projectConfig.displayName
+                self.navigationItem.setRightBarButton(UIBarButtonItem(image: UIImage(system名称: "ellipsis.circle"), primaryAction: nil, menu: generateMenu()), animated: false)
             }
         }
     }
 
-    @objc func toggleSelectionMode() {
-        isSelecting.toggle()
+    @objc func toggle选择ionMode() {
+        is选择ing.toggle()
         selectedPaths.removeAll()
 
-        tableView.allowsMultipleSelection = isSelecting
+        tableView.allowsMultiple选择ion = is选择ing
 
-        navigationItem.rightBarButtonItem?.isEnabled = !isSelecting
+        navigationItem.rightBarButtonItem?.isEnabled = !is选择ing
 
-        if isSelecting {
-            let deleteButton = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteSelected))
+        if is选择ing {
+            let deleteButton = UIBarButtonItem(title: "删除", style: .plain, target: self, action: #selector(delete选择ed))
             deleteButton.tintColor = .systemRed
-            let copyButton = UIBarButtonItem(title: "Copy", style: .plain, target: self, action: #selector(copySelected))
-            let shareButton = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(shareSelected))
-            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            let copyButton = UIBarButtonItem(title: "拷贝", style: .plain, target: self, action: #selector(copy选择ed))
+            let shareButton = UIBarButtonItem(title: "分享", style: .plain, target: self, action: #selector(share选择ed))
+            let spacer = UIBarButtonItem(barButton系统Item: .flexibleSpace, target: nil, action: nil)
             
             setToolbarItems([deleteButton, spacer, copyButton, spacer, shareButton], animated: true)
             navigationController?.setToolbarHidden(false, animated: true)
             tabBarController?.tabBar.isHidden = true
             
-            let doneButton = UIBarButtonItem(title: "Done", style: .plain, target: self, action: #selector(toggleSelectionMode))
+            let doneButton = UIBarButtonItem(title: "完成", style: .plain, target: self, action: #selector(toggle选择ionMode))
             navigationItem.setLeftBarButton(doneButton, animated: true)
             self.refreshControl = nil
         } else {
             setToolbarItems(nil, animated: true)
             navigationController?.setToolbarHidden(true, animated: true)
             tabBarController?.tabBar.isHidden = false
-            navigationItem.setLeftBarButton(nil, animated: true)
+            
+            if UIDevice.current.userInterfaceIdiom == .pad,
+               !self.isSublink {
+                self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "关闭") { [weak self] _ in
+                    guard let self = self else { return }
+                    UserDefaults.standard.set(nil, forKey: "LDELast工程选择ed")
+                    self.dismiss(animated: true)
+                }), animated: true)
+            } else {
+                navigationItem.setLeftBarButton(nil, animated: true)
+            }
+            
             self.refreshControl = UIRefreshControl()
             self.refreshControl?.addTarget(self, action: #selector(performRefresh), for: .valueChanged)
             tableView.reloadData()
         }
     }
 
-    @objc func deleteSelected() {
+    @objc func delete选择ed() {
         guard !selectedPaths.isEmpty else { return }
 
         let alert = UIAlertController(
-            title: "Delete \(selectedPaths.count) item\(selectedPaths.count == 1 ? "" : "s")?",
-            message: "This action cannot be undone.",
+            title: "删除 \(selectedPaths.count) 项？",
+            message: "此操作无法撤销。",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
             guard let self = self else { return }
 
             for path in self.selectedPaths {
                 let fileUrl = URL(fileURLWithPath: path)
-                if ((try? FileManager.default.removeItem(at: fileUrl)) != nil), let project = self.project {
-                    let database: DebugDatabase = DebugDatabase.getDatabase(ofPath: "\(project.cachePath!))/debug.json")
-                    NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["close", fileUrl.path])
-                    database.removeFileDebug(ofPath: fileUrl.path)
-                    database.saveDatabase(toPath: "\(project.cachePath!)/debug.json")
+                if ((try? 文件Manager.default.removeItem(at: fileUrl)) != nil), let project = self.project {
+                    let database: DebugDatabase = DebugDatabase.getDatabase(ofPath: project.cacheURL.appendingPathComponent("debug.json").path)
+                    NotificationCenter.default.post(name: Notification.名称("文件ListAct"), object: ["close", fileUrl.path])
+                    database.remove文件Debug(ofPath: fileUrl.path)
+                    database.saveDatabase(toPath: project.cacheURL.appendingPathComponent("debug.json").path)
                 } else {
-                    try? FileManager.default.removeItem(atPath: path)
+                    try? 文件Manager.default.removeItem(atPath: path)
                 }
             }
 
             self.entries.removeAll { self.selectedPaths.contains($0.path) }
             self.selectedPaths.removeAll()
             self.tableView.reloadData()
-            self.toggleSelectionMode()
+            self.toggle选择ionMode()
         })
 
         present(alert, animated: true)
     }
 
-    @objc func shareSelected() {
+    @objc func share选择ed() {
         guard !selectedPaths.isEmpty else { return }
         let urls = selectedPaths.map { URL(fileURLWithPath: $0) }
         let activityVC = UIActivityViewController(activityItems: urls, applicationActivities: nil)
@@ -222,47 +237,47 @@ import UniformTypeIdentifiers
         present(activityVC, animated: true)
     }
 
-    @objc func copySelected() {
-        PasteBoardServices.copy(mode: .copy, paths:selectedPaths)
-        toggleSelectionMode()
+    @objc func copy选择ed() {
+        粘贴BoardServices.copy(mode: .copy, paths:selectedPaths)
+        toggle选择ionMode()
     }
 
-    func createEntry(mode: FileListEntry.FileListEntryType) {
+    func createEntry(mode: 文件ListEntry.文件ListEntryType) {
         let alert: UIAlertController = UIAlertController(
-            title: "Create \((mode == .file) ? "File" : "Folder")",
+            title: "新建\((mode == .file) ? "文件" : "文件夹")",
             message: nil,
             preferredStyle: .alert
         )
         
         alert.addTextField { textField in
-            textField.placeholder = "Name"
+            textField.placeholder = "名称"
         }
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "提交", style: .default) { [weak self] _ in
             guard let self = self else { return }
             let destination: URL = URL(fileURLWithPath: self.path).appendingPathComponent(alert.textFields![0].text ?? "")
             
             var isDirectory: ObjCBool = ObjCBool(false)
-            if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
+            if 文件Manager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
                 self.presentConfirmationAlert(
-                    title: mode == .dir ? "Error" : "Warning",
-                    message: "\(isDirectory.boolValue ? "Folder" : "File") with the name \"\(destination.lastPathComponent)\" already exists. \(!isDirectory.boolValue ? "" : "Folders cannot be removed!")",
-                    confirmTitle: "Overwrite",
+                    title: mode == .dir ? "错误" : "警告",
+                    message: "\(isDirectory.boolValue ? "文件夹" : "文件") ，名为“\(destination.lastPathComponent)”已存在。 \(!isDirectory.boolValue ? "" : "文件夹s cannot be removed!")",
+                    confirmTitle: "覆盖",
                     confirmStyle: .destructive,
                     confirmHandler: {
-                        try? String(NXUser.shared().generateFileCreationContent(forName: destination.lastPathComponent)).write(to: destination, atomically: true, encoding: .utf8)
-                        self.replaceFile(destination: destination)
+                        try? String(NXUser.shared().generate文件CreationContent(for名称: destination.lastPathComponent)).write(to: destination, atomically: true, encoding: .utf8)
+                        self.replace文件(destination: destination)
                     },
                     addHandler: mode == .file && !isDirectory.boolValue
                 )
             } else {
                 if mode == .file {
-                    try? String(NXUser.shared().generateFileCreationContent(forName: destination.lastPathComponent)).write(to: destination, atomically: true, encoding: .utf8)
+                    try? String(NXUser.shared().generate文件CreationContent(for名称: destination.lastPathComponent)).write(to: destination, atomically: true, encoding: .utf8)
                 } else {
-                    try? FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+                    try? 文件Manager.default.createDirectory(at: destination, withIntermediateDirectories: false)
                 }
-                self.addFile(destination: destination)
+                self.add文件(destination: destination)
             }
         })
         
@@ -272,52 +287,79 @@ import UniformTypeIdentifiers
     func generateMenu() -> UIMenu {
         var rootMenuChildren: [UIMenu] = []
         
-        // Project Roots Menu in case its the root of the project obviously
+        // 工程 Roots Menu in case its the root of the project obviously
         if !self.isSublink, UIDevice.current.userInterfaceIdiom != .pad, let project = self.project {
             var projectMenuElements: [UIMenuElement] = []
-            projectMenuElements.append(UIAction(title: "Run", image: UIImage(systemName: "play.fill"), handler: { [weak self] _ in
+            if !NXApplicationState.extensionLessMode {
+                projectMenuElements.append(UIAction(title: "运行", image: UIImage(system名称: "play.fill"), handler: { [weak self] _ in
+                    guard let self = self else { return }
+                    build工程WithArgumentUI(targetViewController: self, project: project, buildType: .run) { result, execPath in
+                        if result {
+                            if project.projectConfig.schemeKind == .app {
+                                PEProcessManager.shared().spawnProcess(withBundleIdentifier: project.projectConfig.bundleid, withItems: [:], withKernelSurfaceProcess: nil, doRestartIf运行ning: true)
+                            } else if project.projectConfig.schemeKind == .utility, let execPath = execPath {
+                                let terminalSession: NXWindowSessionTerminal = NXWindowSessionTerminal(utilityPath: execPath)
+                                NXWindowServer.shared().openWindow(with: terminalSession, withCompletion: nil)
+                            }
+                        }
+                    }
+                }))
+            }
+            projectMenuElements.append(UIAction(title: "导出", image: UIImage(system名称: "archivebox.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
-                buildProjectWithArgumentUI(targetViewController: self, project: project, buildType: .RunningApp)
+                build工程WithArgumentUI(targetViewController: self, project: project, buildType: .export)
             }))
-            if project.projectConfig.type == NXProjectType.app.rawValue {
-                projectMenuElements.append(UIAction(title: "Export", image: UIImage(systemName: "archivebox.fill"), handler: { [weak self] _ in
-                    guard let self = self else { return }
-                    buildProjectWithArgumentUI(targetViewController: self, project: project, buildType: .InstallPackagedApp)
-                }))
-            }
-            if project.projectConfig.type == NXProjectType.app.rawValue || project.projectConfig.type == NXProjectType.utility.rawValue {
-                projectMenuElements.append(UIAction(title: "Issue Navigator", image: UIImage(systemName: "exclamationmark.triangle.fill"), handler: { [weak self] _ in
-                    guard let self = self else { return }
-                    let loggerView = UINavigationController(rootViewController: UIDebugViewController(project: project))
-                    loggerView.modalPresentationStyle = .formSheet
-                    self.present(loggerView, animated: true)
-                }))
-            }
+            projectMenuElements.append(UIAction(title: "问题导航器", image: UIImage(system名称: "exclamationmark.triangle.fill"), handler: { [weak self] _ in
+                guard let self = self else { return }
+                let loggerView = UINavigationController(rootViewController: UIDebugViewController(project: project))
+                loggerView.modalPresentationStyle = .formSheet
+                self.present(loggerView, animated: true)
+            }))
             
             rootMenuChildren.append({
-                if #available(iOS 17.0, *) {
-                    return UIMenu(title: "Project", options: [.displayAsPalette, .displayInline], children: projectMenuElements.reversed())
-                } else {
-                    return UIMenu(title: "Project", options: [.displayInline], children: projectMenuElements)
-                }
+                return UIMenu(title: "工程", options: [.displayAsPalette, .displayInline], children: projectMenuElements.reversed())
             }())
         }
         
         if !self.isSublink {
-            rootMenuChildren.append(UIMenu(title: "System", options: [.displayInline], children: [
+            rootMenuChildren.append(UIMenu(title: "系统", options: [.displayInline], children: [
                 UIAction(
-                    title: "Browse SDK",
-                    image: UIImage(systemName: "books.vertical.fill")
+                    title: "浏览 SDK",
+                    image: UIImage(system名称: "books.vertical.fill")
                 ) { [weak self] _ in
                     guard let self = self else { return }
-                    let sdkPath = Bootstrap.shared.bootstrapPath("/SDK/iPhoneOS26.2.sdk")
-                    let fileVC = FileListViewController(
+                    let fileVC = 文件ListViewController(
                         isSublink: true,
                         project: project,
-                        path: sdkPath,
+                        path: NXBootstrap.shared().sdkURL.path,
                         isReadOnly: true
                     )
                     self.navigationController?.pushViewController(fileVC, animated: true)
+                },
+                UIAction(
+                    title: "浏览缓存",
+                    image: UIImage(system名称: "folder.fill.badge.person.crop")
+                ) { [weak self] _ in
+                    guard let self = self else { return }
+                    let fileVC = 文件ListViewController(
+                        isSublink: true,
+                        project: project,
+                        path: project?.cacheURL.path ?? "",
+                        isReadOnly: true
+                    )
+                    self.navigationController?.pushViewController(fileVC, animated: true)
+                },
+                UIAction(
+                    title: "配置",
+                    image: UIImage(system名称: "folder.fill.badge.gearshape")
+                ) { [weak self] _ in
+                    guard let self = self else { return }
+                    guard let project = self.project else { return }
+                    let vc: 工程ConfigViewController = 工程ConfigViewController(project: project)
+                    let nvc: UINavigationController = UINavigationController(rootViewController: vc)
+                    nvc.modalPresentationStyle = .formSheet
+                    nvc.isModalInPresentation = true
+                    self.present(nvc, animated: true)
                 }
             ]))
         }
@@ -326,41 +368,35 @@ import UniformTypeIdentifiers
             // The generic file system menu
             var fileMenuElements: [UIMenuElement] = []
             var createMenuElements: [UIMenuElement] = []
-            createMenuElements.append(UIAction(title: "File", image: UIImage(systemName: "doc.fill"), handler: { [weak self] _ in
+            createMenuElements.append(UIAction(title: "文件", image: UIImage(system名称: "doc.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 self.createEntry(mode: .file)
             }))
-            createMenuElements.append(UIAction(title: "Folder", image: UIImage(systemName: "folder.fill"), handler: { [weak self] _ in
+            createMenuElements.append(UIAction(title: "文件夹", image: UIImage(system名称: "folder.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 self.createEntry(mode: .dir)
             }))
-            fileMenuElements.append(UIMenu(title: "New", image: UIImage(systemName: "plus.circle.fill"), children: createMenuElements))
-            fileMenuElements.append(UIAction(title: "Paste", image: UIImage(systemName: {
-                if #available(iOS 16.0, *) {
-                    return "list.bullet.clipboard.fill"
-                } else {
-                    return "doc.on.doc.fill"
-                }
-            }()), handler: { [weak self] _ in
+            fileMenuElements.append(UIMenu(title: "新建", image: UIImage(system名称: "plus.circle.fill"), children: createMenuElements))
+            fileMenuElements.append(UIAction(title: "粘贴", image: UIImage(system名称: "list.bullet.clipboard.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
-                PasteBoardServices.paste(path: self.path) { file in
-                    self.addFile(destination: file)
+                粘贴BoardServices.paste(path: self.path) { file in
+                    self.add文件(destination: file)
                 }
             }))
-            fileMenuElements.append(UIAction(title: "Import", image: UIImage(systemName: "square.and.arrow.down.fill")) { [weak self] _ in
+            fileMenuElements.append(UIAction(title: "导入", image: UIImage(system名称: "square.and.arrow.down.fill")) { [weak self] _ in
                 guard let self = self else { return }
-                let documentPicker: UIDocumentPickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
-                documentPicker.allowsMultipleSelection = true
+                let documentPicker: UIDocumentPickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: [.item], as拷贝: true)
+                documentPicker.allowsMultiple选择ion = true
                 documentPicker.modalPresentationStyle = .formSheet
                 documentPicker.delegate = self
                 self.present(documentPicker, animated: true)
             })
-            fileMenuElements.append(UIAction(title: "Select", image: UIImage(systemName: "checkmark.circle.fill")) { [weak self] _ in
+            fileMenuElements.append(UIAction(title: "选择", image: UIImage(system名称: "checkmark.circle.fill")) { [weak self] _ in
                 guard let self = self else { return }
-                self.toggleSelectionMode()
+                self.toggle选择ionMode()
             })
 
-            rootMenuChildren.append(UIMenu(title: "File", options: [.displayInline], children: fileMenuElements))
+            rootMenuChildren.append(UIMenu(title: "文件", options: [.displayInline], children: fileMenuElements))
         }
         
         return UIMenu(children: rootMenuChildren)
@@ -369,12 +405,12 @@ import UniformTypeIdentifiers
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         // TODO: Add handling for overwrite and stuff... like keep,rename,overwrite. We also should merge these functions as thats the 3rd time copying those.
         for url in urls {
-            let fileName: String = url.lastPathComponent
-            let destination: URL = URL(fileURLWithPath: self.path).appendingPathComponent(fileName)
+            let file名称: String = url.lastPathComponent
+            let destination: URL = URL(fileURLWithPath: self.path).appendingPathComponent(file名称)
             
             do {
-                try FileManager.default.moveItem(at: url, to: destination)
-                replaceOrAddFile(destination: destination)
+                try 文件Manager.default.moveItem(at: url, to: destination)
+                replaceOrAdd文件(destination: destination)
             } catch {
                 print(error.localizedDescription)
             }
@@ -382,74 +418,82 @@ import UniformTypeIdentifiers
     }
     
     override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        if isSelecting { return nil }
+        if is选择ing { return nil }
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] suggestedActions in
             guard let self = self else { return UIMenu() }
             
-            let copyAction = UIAction(title: "Copy", image: UIImage(systemName: {
-                if #available(iOS 17.0, *) {
-                    return "document.on.clipboard"
-                } else {
-                    return "doc.on.doc.fill"
+            let getInfoAction = UIAction(title: "显示简介", image: UIImage(system名称: "info")) { [weak self] action in
+                guard let self = self else { return }
+                do {
+                    let nav: UINavigationController = UINavigationController(rootViewController: try 文件InfoViewController(fileEntry: self.entries[indexPath.row]))
+                    nav.modalPresentationStyle = .formSheet
+                    self.present(nav, animated: true)
+                } catch {
+                    NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "打开文件信息页出错：\(error.localizedDescription)", withDelay: 0.0)
                 }
-            }())) { action in
-                PasteBoardServices.copy(mode: .copy, paths: [self.entries[indexPath.row].path])
             }
-            let moveAction = UIAction(title: "Move", image: UIImage(systemName: "arrow.right")) { [weak self] action in
+            
+            let copyAction = UIAction(title: "拷贝", image: UIImage(system名称: "document.on.clipboard")) { [weak self] action in
+                guard let self = self else { return }
+                粘贴BoardServices.copy(mode: .copy, paths: [self.entries[indexPath.row].path])
+            }
+            let moveAction = UIAction(title: "移动", image: UIImage(system名称: "arrow.right")) { [weak self] action in
                 guard let self = self else { return }
                 let entry = self.entries[indexPath.row]
-                PasteBoardServices.onMove = { [weak self] in
+                粘贴BoardServices.on移动 = { [weak self] in
                     guard let self = self else { return }
                     self.entries.removeAll(where: { $0.path == entry.path })
                     self.tableView.deleteRows(at: [indexPath], with: .automatic)
                 }
-                PasteBoardServices.copy(mode: .move, paths: [entry.path])
+                粘贴BoardServices.copy(mode: .move, paths: [entry.path])
             }
-            let renameAction = UIAction(title: "Rename", image: UIImage(systemName: "rectangle.and.pencil.and.ellipsis")) { [weak self] action in
+            let renameAction = UIAction(title: "重命名", image: UIImage(system名称: "rectangle.and.pencil.and.ellipsis")) { [weak self] action in
                 guard let self = self else { return }
-                let entry: FileListEntry = self.entries[indexPath.row]
+                let entry: 文件ListEntry = self.entries[indexPath.row]
                 
                 let alert: UIAlertController = UIAlertController(
-                    title: "Rename \(entry.type == .dir ? "Folder" : "File")",
+                    title: "重命名\(entry.type == .dir ? "文件夹" : "文件")",
                     message: nil,
                     preferredStyle: .alert
                 )
                 
                 alert.addTextField { textField in
-                    textField.placeholder = "Filename"
+                    textField.placeholder = "文件名"
                     textField.text = entry.name
                 }
                 
-                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-                alert.addAction(UIAlertAction(title: "Rename", style: .default, handler: { [weak self] _ in
+                alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+                alert.addAction(UIAlertAction(title: "重命名", style: .default, handler: { [weak self] _ in
                     guard let self = self else { return }
-                    let newName = alert.textFields![0].text ?? "0"
-                    try? FileManager.default.moveItem(atPath: "\(self.path)/\(entry.name)", toPath: "\(self.path)/\(newName)")
+                    let new名称 = alert.textFields![0].text ?? "0"
+                    try? 文件Manager.default.moveItem(atPath: "\(self.path)/\(entry.name)", toPath: "\(self.path)/\(new名称)")
                     
                     if let masterIndex = self.entries.firstIndex(where: { $0.path == entry.path }) {
                         self.entries.remove(at: masterIndex)
-                        self.entries.append(FileListEntry.getEntry(ofPath: "\(self.path)/\(newName)"))
+                        self.entries.append(文件ListEntry.getEntry(ofPath: "\(self.path)/\(new名称)"))
                     }
                     self.tableView.reloadData()
                 }))
                 
                 self.present(alert, animated: true)
             }
-            let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up.fill")) { [weak self] action in
+            let shareAction = UIAction(title: "分享", image: UIImage(system名称: "square.and.arrow.up.fill")) { [weak self] action in
                 guard let self = self else { return }
-                let entry: FileListEntry = self.entries[indexPath.row]
+                let entry: 文件ListEntry = self.entries[indexPath.row]
                 share(url: URL(fileURLWithPath: "\(self.path)/\(entry.name)"), remove: false)
             }
-            let deleteAction = UIAction(title: "Remove", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] action in
+            let deleteAction = UIAction(title: "移除", image: UIImage(system名称: "trash.fill"), attributes: .destructive) { [weak self] action in
                 guard let self = self else { return }
                 let entry = self.entries[indexPath.row]
                 let fileUrl: URL = URL(fileURLWithPath: "\(self.path)/\(entry.name)")
-                if ((try? FileManager.default.removeItem(at: fileUrl)) != nil), let project = self.project {
-                    let database: DebugDatabase = DebugDatabase.getDatabase(ofPath: "\(project.cachePath!))/debug.json")
-                    NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["close",fileUrl.path])
-                    database.removeFileDebug(ofPath: fileUrl.path)
-                    database.saveDatabase(toPath: "\(project.cachePath!)/debug.json")
+                if ((try? 文件Manager.default.removeItem(at: fileUrl)) != nil) {
+                    if let project = self.project {
+                        let database: DebugDatabase = DebugDatabase.getDatabase(ofPath: project.cacheURL.appendingPathComponent("debug.json").path)
+                        NotificationCenter.default.post(name: Notification.名称("文件ListAct"), object: ["close",fileUrl.path])
+                        database.remove文件Debug(ofPath: fileUrl.path)
+                        database.saveDatabase(toPath: project.cacheURL.appendingPathComponent("debug.json").path)
+                    }
                     if let masterIndex = self.entries.firstIndex(where: { $0.path == entry.path }) {
                         self.entries.remove(at: masterIndex)
                     }
@@ -457,8 +501,14 @@ import UniformTypeIdentifiers
                 }
             }
             
-            return UIMenu(children: [UIMenu(options: .displayInline, children: [copyAction, moveAction, renameAction]),
-                                     UIMenu(options: .displayInline, children: [shareAction, deleteAction])])
+            var children: [UIMenu] = []
+            children.append(UIMenu(options: .displayInline, children: [getInfoAction]))
+            children.append(UIMenu(options: .displayInline, children: self.isReadOnly ? [copyAction] : [copyAction, moveAction, renameAction]))
+            children.append(UIMenu(options: .displayInline, children: [shareAction]))
+            if !self.isReadOnly {
+                children.append(UIMenu(options: .displayInline, children: [deleteAction]))
+            }
+            return UIMenu(children: children)
         }
     }
     
@@ -466,49 +516,55 @@ import UniformTypeIdentifiers
         return entries.count
     }
     
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if isSelecting {
+    override func tableView(_ tableView: UITableView, did选择RowAt indexPath: IndexPath) {
+        if is选择ing {
             selectedPaths.insert(entries[indexPath.row].path)
             tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
             return
         }
-
+        
         self.tableView.deselectRow(at: indexPath, animated: true)
         
-        if !self.navigationItem.hidesBackButton {
-            let fileListEntry: FileListEntry = entries[indexPath.row]
-            
-            switch(fileListEntry.type) {
-            case .dir:
-                let fileVC = FileListViewController(isSublink: true, project: project, path: fileListEntry.path, isReadOnly: self.isReadOnly)
-                self.navigationController?.pushViewController(fileVC, animated: true)
-                break
-            case .file:
-                if ["zip","ipa"].contains(URL(fileURLWithPath: fileListEntry.path).pathExtension)  {
-                    let folder: URL = PasteBoardServices.resolvedDestinationURL(for: fileListEntry.path.URLLastPathComponent(), inDirectory: self.path)
-                    if ((try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)) != nil) {
-                        if(unzipArchiveAtPath(fileListEntry.path, folder.path)) {
-                            self.entries.append(FileListEntry.getEntry(ofPath: folder.path))
-                            self.tableView.reloadData()
-                        } else {
-                            NotificationServer.NotifyUser(level: .error, notification: "Failed to unzip \(fileListEntry.path)")
-                        }
-                    }
-                } else {
-                    if UIDevice.current.userInterfaceIdiom == .pad {
-                        NotificationCenter.default.post(name: Notification.Name("FileListAct"), object: ["open",fileListEntry.path,"0","0",self.isReadOnly ? "1" : "0"])
+        guard !self.navigationItem.hidesBackButton,
+              self.navigationItem.leftBarButtonItem?.isEnabled ?? true else {
+            return
+        }
+        
+        let fileListEntry: 文件ListEntry = entries[indexPath.row]
+        
+        switch(fileListEntry.type) {
+        case .dir:
+            let fileVC = 文件ListViewController(isSublink: true, project: project, path: fileListEntry.path, isReadOnly: self.isReadOnly)
+            self.navigationController?.pushViewController(fileVC, animated: true)
+            break
+        case .file:
+            if ["zip","ipa"].contains(URL(fileURLWithPath: fileListEntry.path).pathExtension)  {
+                let folder: URL = 粘贴BoardServices.resolvedDestinationURL(for: (fileListEntry.path as NSString).lastPathComponent, inDirectory: self.path)
+                if ((try? 文件Manager.default.createDirectory(at: folder, withIntermediateDirectories: true)) != nil) {
+                    if(unzipArchiveAtPath(fileListEntry.path, folder.path)) {
+                        self.entries.append(文件ListEntry.getEntry(ofPath: folder.path))
+                        self.tableView.reloadData()
                     } else {
-                        let fileVC = UINavigationController(rootViewController: CodeEditorViewController(project: project, path: fileListEntry.path, isReadOnly: self.isReadOnly))
-                        fileVC.modalPresentationStyle = .overFullScreen
-                        self.present(fileVC, animated: true)
+                        NXAlertDiagnosticPresenter.notifyUser(with: .error, withMessage: "解压 \(fileListEntry.path) 失败", withDelay: 0.0)
                     }
+                }
+            } else {
+                if NXApplicationState.fileListRequiresToSendRequests {
+                    NotificationCenter.default.post(name: Notification.名称("文件ListAct"), object: ["open",fileListEntry.path,"0","0",self.isReadOnly ? "1" : "0"])
+                } else {
+                    guard let codeEditor = CodeEditorViewController(project: project, url: URL(fileURLWithPath: fileListEntry.path), isReadOnly: self.isReadOnly) else {
+                        return
+                    }
+                    let fileVC = UINavigationController(rootViewController: codeEditor)
+                    fileVC.modalPresentationStyle = .overFullScreen
+                    self.present(fileVC, animated: true)
                 }
             }
         }
     }
 
     override func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
-        if isSelecting {
+        if is选择ing {
             selectedPaths.remove(entries[indexPath.row].path)
             
             tableView.cellForRow(at: indexPath)?.accessoryType = (entries[indexPath.row].type == .dir) ? .disclosureIndicator : .none
@@ -516,7 +572,7 @@ import UniformTypeIdentifiers
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: FileListCell.reuseIdentifier, for: indexPath) as! FileListCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: 文件ListCell.reuseIdentifier, for: indexPath) as! 文件ListCell
             
         let entry = entries[indexPath.row]
         cell.configure(with: entry)
@@ -524,56 +580,16 @@ import UniformTypeIdentifiers
         return cell
     }
     
-    static func addStackedLabel(to view: UIView, base: String, offset: CGPoint, color: UIColor) {
-        let baseLabel = UILabel()
-        baseLabel.text = base
-        baseLabel.font = .systemFont(ofSize: 20, weight: .light)
-        baseLabel.textColor = color
-        baseLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        let plusLabel = UILabel()
-        plusLabel.text = "+"
-        plusLabel.font = .systemFont(ofSize: 10, weight: .light)
-        plusLabel.textColor = color
-        plusLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        view.addSubview(baseLabel)
-        view.addSubview(plusLabel)
-        
-        NSLayoutConstraint.activate([
-            baseLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            baseLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            plusLabel.leadingAnchor.constraint(equalTo: baseLabel.trailingAnchor, constant: offset.x),
-            plusLabel.topAnchor.constraint(equalTo: baseLabel.topAnchor, constant: offset.y)
-        ])
-    }
-    
-    static func addSystemImage(to view: UIView, name: String, tintColor: UIColor? = nil, height: CGFloat = 20) {
-        let imageView = UIImageView(image: UIImage(systemName: name))
-        imageView.contentMode = .scaleAspectFit
-        if let tintColor = tintColor {
-            imageView.tintColor = tintColor
-        }
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(imageView)
-        
-        NSLayoutConstraint.activate([
-            imageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            imageView.heightAnchor.constraint(equalToConstant: height)
-        ])
-    }
-    
     ///
     /// Private: Function to add or replace a file or files in the array
     ///
-    private func addFile(destination: URL) {
-        self.entries.append(FileListEntry.getEntry(ofPath: destination.path))
+    private func add文件(destination: URL) {
+        self.entries.append(文件ListEntry.getEntry(ofPath: destination.path))
         let newIndexPath = IndexPath(row: self.entries.count - 1, section: 0)
         self.tableView.insertRows(at: [newIndexPath], with: .automatic)
     }
     
-    private func replaceFile(destination: URL) {
+    private func replace文件(destination: URL) {
         let index = self.entries.firstIndex(where: { $0.name == destination.lastPathComponent} )
         if let index {
             self.entries.remove(at: index)
@@ -581,16 +597,16 @@ import UniformTypeIdentifiers
             self.tableView.deleteRows(at: [oldIndexPath], with: .automatic)
         }
         
-        self.entries.append(FileListEntry.getEntry(ofPath: destination.path))
+        self.entries.append(文件ListEntry.getEntry(ofPath: destination.path))
         let newIndexPath = IndexPath(row: self.entries.count - 1, section: 0)
         self.tableView.insertRows(at: [newIndexPath], with: .automatic)
     }
     
-    private func replaceOrAddFile(destination: URL) {
-        if FileManager.default.fileExists(atPath: destination.path) {
-            replaceFile(destination: destination)
+    private func replaceOrAdd文件(destination: URL) {
+        if 文件Manager.default.fileExists(atPath: destination.path) {
+            replace文件(destination: destination)
         } else {
-            addFile(destination: destination)
+            add文件(destination: destination)
         }
     }
 }
@@ -601,9 +617,9 @@ func share(url: URL, remove: Bool = false) {
     if remove {
         activityViewController.completionWithItemsHandler = { _, _, _, _ in
             do {
-                try FileManager.default.removeItem(at: url)
+                try 文件Manager.default.removeItem(at: url)
             } catch {
-                print("Failed to remove file: \(error)")
+                print("删除文件失败：\(error)")
             }
         }
     }
@@ -614,7 +630,7 @@ func share(url: URL, remove: Bool = false) {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }),
               let rootViewController = keyWindow.rootViewController else {
-            print("No key window or root view controller found.")
+            print("未找到 key window 或根视图控制器。")
             return
         }
 

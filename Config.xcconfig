@@ -3,10 +3,20 @@
 //  Nyxian
 //
 //  Created by FridaDEV on 09.12.25.
+//  Updated by Kyle-Ye on 25.04.26.
 //
 
 // Configuration settings file format documentation can be found at:
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 
-VERSION = 0.9.0
-BUILD_NUMBER = 20260311.41.DE.frida
+VERSION = 0.11.5
+BUILD_NUMBER = 20261018.CN.01
+
+NYXIAN_DEVELOPMENT_TEAM = L4A6CKH3TV
+DEVELOPMENT_TEAM = $(NYXIAN_DEVELOPMENT_TEAM)
+
+NYXIAN_PRODUCT_BUNDLE_IDENTIFIER = app.jujube1760.cassava8287
+NYXIAN_LIVEPROCESS_PRODUCT_BUNDLE_IDENTIFIER = app.jujube1760.cassava8287
+
+NYXIAN_CODE_SIGN_ENTITLEMENTS = Nyxian/Nyxian.entitlements
+NYXIAN_LIVEPROCESS_CODE_SIGN_ENTITLEMENTS = LiveProcess/LiveProcess.entitlements
