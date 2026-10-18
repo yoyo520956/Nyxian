@@ -68,11 +68,25 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
 
+      - name: Cache LLVM toolchain (skip ~4h LLVM build on hit)
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: Frameworks/CoreCompiler/CoreCompilerSupportLibs
+          key: llvm-cc-${{ runner.os }}-v1
+
       - name: Build Nyxian
         timeout-minutes: 1200
         run: |
           set -e
           CHECK_DEPS=0 make all
+
+      - name: Save LLVM toolchain cache (bank the 4h investment even on failure)
+        if: always() && steps.cache-llvm.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: Frameworks/CoreCompiler/CoreCompilerSupportLibs
+          key: llvm-cc-${{ runner.os }}-v1
 
       - name: Upload Nyxian
         uses: actions/upload-artifact@v4
