@@ -27,6 +27,18 @@ jobs:
           # Packages we desperately need
           brew install ldid dpkg libarchive
 
+      - name: Pin Xcode (26.2 — new-SDK Runestone availability workaround)
+        run: |
+          set -e
+          for v in Xcode_26.2 Xcode_26.3 Xcode_26.1 Xcode_16.4; do
+            if [ -d "/Applications/$v.app" ]; then
+              echo "DEVELOPER_DIR=/Applications/$v.app/Contents/Developer" >> "$GITHUB_ENV"
+              echo "Pinned: $v"
+              break
+            fi
+          done
+          xcodebuild -version || true
+
       - name: Cache Theos
         id: cache-theos
         uses: actions/cache@v4
