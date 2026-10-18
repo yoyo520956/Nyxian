@@ -131,7 +131,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
         }
         
         if UIDevice.current.userInterfaceIdiom == .pad, !self.isSublink {
-            self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "Close") { [weak self] _ in
+            self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "关闭") { [weak self] _ in
                 guard let self = self else { return }
                 UserDefaults.standard.set(nil, forKey: "LDELastProjectSelected")
                 self.dismiss(animated: true)
@@ -156,17 +156,17 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
         navigationItem.rightBarButtonItem?.isEnabled = !isSelecting
 
         if isSelecting {
-            let deleteButton = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteSelected))
+            let deleteButton = UIBarButtonItem(title: "删除", style: .plain, target: self, action: #selector(deleteSelected))
             deleteButton.tintColor = .systemRed
-            let copyButton = UIBarButtonItem(title: "Copy", style: .plain, target: self, action: #selector(copySelected))
-            let shareButton = UIBarButtonItem(title: "Share", style: .plain, target: self, action: #selector(shareSelected))
+            let copyButton = UIBarButtonItem(title: "拷贝", style: .plain, target: self, action: #selector(copySelected))
+            let shareButton = UIBarButtonItem(title: "分享", style: .plain, target: self, action: #selector(shareSelected))
             let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
             
             setToolbarItems([deleteButton, spacer, copyButton, spacer, shareButton], animated: true)
             navigationController?.setToolbarHidden(false, animated: true)
             tabBarController?.tabBar.isHidden = true
             
-            let doneButton = UIBarButtonItem(title: "Done", style: .plain, target: self, action: #selector(toggleSelectionMode))
+            let doneButton = UIBarButtonItem(title: "完成", style: .plain, target: self, action: #selector(toggleSelectionMode))
             navigationItem.setLeftBarButton(doneButton, animated: true)
             self.refreshControl = nil
         } else {
@@ -176,7 +176,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
             
             if UIDevice.current.userInterfaceIdiom == .pad,
                !self.isSublink {
-                self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "Close") { [weak self] _ in
+                self.navigationItem.setLeftBarButton(UIBarButtonItem(primaryAction: UIAction(title: "关闭") { [weak self] _ in
                     guard let self = self else { return }
                     UserDefaults.standard.set(nil, forKey: "LDELastProjectSelected")
                     self.dismiss(animated: true)
@@ -195,12 +195,12 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
         guard !selectedPaths.isEmpty else { return }
 
         let alert = UIAlertController(
-            title: "Delete \(selectedPaths.count) item\(selectedPaths.count == 1 ? "" : "s")?",
-            message: "This action cannot be undone.",
+            title: "删除 \(selectedPaths.count) 项？",
+            message: "此操作无法撤销。",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
             guard let self = self else { return }
 
             for path in self.selectedPaths {
@@ -244,26 +244,26 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
 
     func createEntry(mode: FileListEntry.FileListEntryType) {
         let alert: UIAlertController = UIAlertController(
-            title: "Create \((mode == .file) ? "File" : "Folder")",
+            title: "新建\((mode == .file) ? "文件" : "文件夹")",
             message: nil,
             preferredStyle: .alert
         )
         
         alert.addTextField { textField in
-            textField.placeholder = "Name"
+            textField.placeholder = "名称"
         }
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "提交", style: .default) { [weak self] _ in
             guard let self = self else { return }
             let destination: URL = URL(fileURLWithPath: self.path).appendingPathComponent(alert.textFields![0].text ?? "")
             
             var isDirectory: ObjCBool = ObjCBool(false)
             if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
                 self.presentConfirmationAlert(
-                    title: mode == .dir ? "Error" : "Warning",
-                    message: "\(isDirectory.boolValue ? "Folder" : "File") with the name \"\(destination.lastPathComponent)\" already exists. \(!isDirectory.boolValue ? "" : "Folders cannot be removed!")",
-                    confirmTitle: "Overwrite",
+                    title: mode == .dir ? "错误" : "警告",
+                    message: "\(isDirectory.boolValue ? "文件夹" : "文件") ，名为“\(destination.lastPathComponent)”已存在。 \(!isDirectory.boolValue ? "" : "Folders cannot be removed!")",
+                    confirmTitle: "覆盖",
                     confirmStyle: .destructive,
                     confirmHandler: {
                         try? String(NXUser.shared().generateFileCreationContent(forName: destination.lastPathComponent)).write(to: destination, atomically: true, encoding: .utf8)
@@ -291,7 +291,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
         if !self.isSublink, UIDevice.current.userInterfaceIdiom != .pad, let project = self.project {
             var projectMenuElements: [UIMenuElement] = []
             if !NXApplicationState.extensionLessMode {
-                projectMenuElements.append(UIAction(title: "Run", image: UIImage(systemName: "play.fill"), handler: { [weak self] _ in
+                projectMenuElements.append(UIAction(title: "运行", image: UIImage(systemName: "play.fill"), handler: { [weak self] _ in
                     guard let self = self else { return }
                     buildProjectWithArgumentUI(targetViewController: self, project: project, buildType: .run) { result, execPath in
                         if result {
@@ -305,11 +305,11 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                     }
                 }))
             }
-            projectMenuElements.append(UIAction(title: "Export", image: UIImage(systemName: "archivebox.fill"), handler: { [weak self] _ in
+            projectMenuElements.append(UIAction(title: "导出", image: UIImage(systemName: "archivebox.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 buildProjectWithArgumentUI(targetViewController: self, project: project, buildType: .export)
             }))
-            projectMenuElements.append(UIAction(title: "Issue Navigator", image: UIImage(systemName: "exclamationmark.triangle.fill"), handler: { [weak self] _ in
+            projectMenuElements.append(UIAction(title: "问题导航器", image: UIImage(systemName: "exclamationmark.triangle.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 let loggerView = UINavigationController(rootViewController: UIDebugViewController(project: project))
                 loggerView.modalPresentationStyle = .formSheet
@@ -317,14 +317,14 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
             }))
             
             rootMenuChildren.append({
-                return UIMenu(title: "Project", options: [.displayAsPalette, .displayInline], children: projectMenuElements.reversed())
+                return UIMenu(title: "工程", options: [.displayAsPalette, .displayInline], children: projectMenuElements.reversed())
             }())
         }
         
         if !self.isSublink {
-            rootMenuChildren.append(UIMenu(title: "System", options: [.displayInline], children: [
+            rootMenuChildren.append(UIMenu(title: "系统", options: [.displayInline], children: [
                 UIAction(
-                    title: "Browse SDK",
+                    title: "浏览 SDK",
                     image: UIImage(systemName: "books.vertical.fill")
                 ) { [weak self] _ in
                     guard let self = self else { return }
@@ -337,7 +337,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                     self.navigationController?.pushViewController(fileVC, animated: true)
                 },
                 UIAction(
-                    title: "Browse Cache",
+                    title: "浏览缓存",
                     image: UIImage(systemName: "folder.fill.badge.person.crop")
                 ) { [weak self] _ in
                     guard let self = self else { return }
@@ -350,7 +350,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                     self.navigationController?.pushViewController(fileVC, animated: true)
                 },
                 UIAction(
-                    title: "Configure",
+                    title: "配置",
                     image: UIImage(systemName: "folder.fill.badge.gearshape")
                 ) { [weak self] _ in
                     guard let self = self else { return }
@@ -368,22 +368,22 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
             // The generic file system menu
             var fileMenuElements: [UIMenuElement] = []
             var createMenuElements: [UIMenuElement] = []
-            createMenuElements.append(UIAction(title: "File", image: UIImage(systemName: "doc.fill"), handler: { [weak self] _ in
+            createMenuElements.append(UIAction(title: "文件", image: UIImage(systemName: "doc.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 self.createEntry(mode: .file)
             }))
-            createMenuElements.append(UIAction(title: "Folder", image: UIImage(systemName: "folder.fill"), handler: { [weak self] _ in
+            createMenuElements.append(UIAction(title: "文件夹", image: UIImage(systemName: "folder.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 self.createEntry(mode: .dir)
             }))
-            fileMenuElements.append(UIMenu(title: "New", image: UIImage(systemName: "plus.circle.fill"), children: createMenuElements))
-            fileMenuElements.append(UIAction(title: "Paste", image: UIImage(systemName: "list.bullet.clipboard.fill"), handler: { [weak self] _ in
+            fileMenuElements.append(UIMenu(title: "新建", image: UIImage(systemName: "plus.circle.fill"), children: createMenuElements))
+            fileMenuElements.append(UIAction(title: "粘贴", image: UIImage(systemName: "list.bullet.clipboard.fill"), handler: { [weak self] _ in
                 guard let self = self else { return }
                 PasteBoardServices.paste(path: self.path) { file in
                     self.addFile(destination: file)
                 }
             }))
-            fileMenuElements.append(UIAction(title: "Import", image: UIImage(systemName: "square.and.arrow.down.fill")) { [weak self] _ in
+            fileMenuElements.append(UIAction(title: "导入", image: UIImage(systemName: "square.and.arrow.down.fill")) { [weak self] _ in
                 guard let self = self else { return }
                 let documentPicker: UIDocumentPickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
                 documentPicker.allowsMultipleSelection = true
@@ -391,12 +391,12 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                 documentPicker.delegate = self
                 self.present(documentPicker, animated: true)
             })
-            fileMenuElements.append(UIAction(title: "Select", image: UIImage(systemName: "checkmark.circle.fill")) { [weak self] _ in
+            fileMenuElements.append(UIAction(title: "选择", image: UIImage(systemName: "checkmark.circle.fill")) { [weak self] _ in
                 guard let self = self else { return }
                 self.toggleSelectionMode()
             })
 
-            rootMenuChildren.append(UIMenu(title: "File", options: [.displayInline], children: fileMenuElements))
+            rootMenuChildren.append(UIMenu(title: "文件", options: [.displayInline], children: fileMenuElements))
         }
         
         return UIMenu(children: rootMenuChildren)
@@ -423,22 +423,22 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] suggestedActions in
             guard let self = self else { return UIMenu() }
             
-            let getInfoAction = UIAction(title: "Get Info", image: UIImage(systemName: "info")) { [weak self] action in
+            let getInfoAction = UIAction(title: "显示简介", image: UIImage(systemName: "info")) { [weak self] action in
                 guard let self = self else { return }
                 do {
                     let nav: UINavigationController = UINavigationController(rootViewController: try FileInfoViewController(fileEntry: self.entries[indexPath.row]))
                     nav.modalPresentationStyle = .formSheet
                     self.present(nav, animated: true)
                 } catch {
-                    NotificationServer.NotifyUser(level: .error, notification: "Error Opening File Info View: \(error.localizedDescription)")
+                    NotificationServer.NotifyUser(level: .error, notification: "打开文件信息页出错：\(error.localizedDescription)")
                 }
             }
             
-            let copyAction = UIAction(title: "Copy", image: UIImage(systemName: "document.on.clipboard")) { [weak self] action in
+            let copyAction = UIAction(title: "拷贝", image: UIImage(systemName: "document.on.clipboard")) { [weak self] action in
                 guard let self = self else { return }
                 PasteBoardServices.copy(mode: .copy, paths: [self.entries[indexPath.row].path])
             }
-            let moveAction = UIAction(title: "Move", image: UIImage(systemName: "arrow.right")) { [weak self] action in
+            let moveAction = UIAction(title: "移动", image: UIImage(systemName: "arrow.right")) { [weak self] action in
                 guard let self = self else { return }
                 let entry = self.entries[indexPath.row]
                 PasteBoardServices.onMove = { [weak self] in
@@ -448,23 +448,23 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                 }
                 PasteBoardServices.copy(mode: .move, paths: [entry.path])
             }
-            let renameAction = UIAction(title: "Rename", image: UIImage(systemName: "rectangle.and.pencil.and.ellipsis")) { [weak self] action in
+            let renameAction = UIAction(title: "重命名", image: UIImage(systemName: "rectangle.and.pencil.and.ellipsis")) { [weak self] action in
                 guard let self = self else { return }
                 let entry: FileListEntry = self.entries[indexPath.row]
                 
                 let alert: UIAlertController = UIAlertController(
-                    title: "Rename \(entry.type == .dir ? "Folder" : "File")",
+                    title: "重命名\(entry.type == .dir ? "文件夹" : "文件")",
                     message: nil,
                     preferredStyle: .alert
                 )
                 
                 alert.addTextField { textField in
-                    textField.placeholder = "Filename"
+                    textField.placeholder = "文件名"
                     textField.text = entry.name
                 }
                 
-                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-                alert.addAction(UIAlertAction(title: "Rename", style: .default, handler: { [weak self] _ in
+                alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+                alert.addAction(UIAlertAction(title: "重命名", style: .default, handler: { [weak self] _ in
                     guard let self = self else { return }
                     let newName = alert.textFields![0].text ?? "0"
                     try? FileManager.default.moveItem(atPath: "\(self.path)/\(entry.name)", toPath: "\(self.path)/\(newName)")
@@ -478,12 +478,12 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                 
                 self.present(alert, animated: true)
             }
-            let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up.fill")) { [weak self] action in
+            let shareAction = UIAction(title: "分享", image: UIImage(systemName: "square.and.arrow.up.fill")) { [weak self] action in
                 guard let self = self else { return }
                 let entry: FileListEntry = self.entries[indexPath.row]
                 share(url: URL(fileURLWithPath: "\(self.path)/\(entry.name)"), remove: false)
             }
-            let deleteAction = UIAction(title: "Remove", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] action in
+            let deleteAction = UIAction(title: "移除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] action in
                 guard let self = self else { return }
                 let entry = self.entries[indexPath.row]
                 let fileUrl: URL = URL(fileURLWithPath: "\(self.path)/\(entry.name)")
@@ -545,7 +545,7 @@ class FileListViewController: UIThemedTableViewController, UIDocumentPickerDeleg
                         self.entries.append(FileListEntry.getEntry(ofPath: folder.path))
                         self.tableView.reloadData()
                     } else {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to unzip \(fileListEntry.path)")
+                        NotificationServer.NotifyUser(level: .error, notification: "解压 \(fileListEntry.path) 失败")
                     }
                 }
             } else {
@@ -619,7 +619,7 @@ func share(url: URL, remove: Bool = false) {
             do {
                 try FileManager.default.removeItem(at: url)
             } catch {
-                print("Failed to remove file: \(error)")
+                print("删除文件失败：\(error)")
             }
         }
     }
@@ -630,7 +630,7 @@ func share(url: URL, remove: Bool = false) {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }),
               let rootViewController = keyWindow.rootViewController else {
-            print("No key window or root view controller found.")
+            print("未找到 key window 或根视图控制器。")
             return
         }
 

@@ -160,7 +160,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
         let kext: PEKext = self.kexts[indexPath.row]
         
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak kext] _ in
-            let deleteAction = UIAction(title: "Delete", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { _ in
+            let deleteAction = UIAction(title: "删除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { _ in
                 if let bundlePath = kext?.bundlePath {
                     try? FileManager.default.removeItem(atPath: bundlePath)
                     if let kextURLs: [URL] = try? FileManager.default.contentsOfDirectory(at: NXBootstrap.shared().rootURL.appendingPathComponent("/mntfs/kextfs"), includingPropertiesForKeys: []) {
@@ -201,7 +201,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        let alert = UIAlertController(title: nil, message: "Validating", preferredStyle: .alert)
+        let alert = UIAlertController(title: nil, message: "正在验证", preferredStyle: .alert)
         
         let activityIndicator = UIActivityIndicatorView(style: .medium)
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -232,7 +232,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                 
                 guard let appBundlePathComponent = contents.first(where: { ($0 as NSString).pathExtension == "kext" }) else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install kext: no .kext bundle found")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装 KEXT 失败：未找到 .kext 包")
                     }
                     return
                 }
@@ -241,14 +241,14 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                 
                 guard let bundle = Bundle(path: appBundleFullPath) else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install kext: invalid bundle path")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装 KEXT 失败：程序包路径无效")
                     }
                     return
                 }
                 
                 guard let executablePath = bundle.executablePath else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install kext: invalid executable path")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装 KEXT 失败：可执行文件路径无效")
                     }
                     return
                 }
@@ -282,7 +282,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                 // Gated >:3
                 let proceedWithInstall: () -> Void = {
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: nil, message: "Installing", preferredStyle: .alert)
+                        let alert = UIAlertController(title: nil, message: "正在安装", preferredStyle: .alert)
                         
                         let activityIndicator = UIActivityIndicatorView(style: .medium)
                         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -314,7 +314,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                                     if ret != 0 {
                                         DispatchQueue.main.async {
                                             alert.dismiss(animated: true) {
-                                                NotificationServer.NotifyUser(level: .error, notification: "Failed to install kext: \(String(cString: mach_error_string(ret)))")
+                                                NotificationServer.NotifyUser(level: .error, notification: "安装 KEXT 失败：\(String(cString: mach_error_string(ret)))")
                                             }
                                         }
                                     }
@@ -346,7 +346,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                                 } else {
                                     DispatchQueue.main.async {
                                         alert.dismiss(animated: true) {
-                                            NotificationServer.NotifyUser(level: .error, notification: "Failed to install kext.")
+                                            NotificationServer.NotifyUser(level: .error, notification: "安装 KEXT 失败。")
                                         }
                                     }
                                 }
@@ -361,7 +361,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                         if final.isEmpty || !isRootCATrusted {
                             let displayName = bundle.bundleIdentifier ?? "Unknown"
                             let alert = UIAlertController(
-                                title: "Install \"\(displayName)\"?",
+                                title: "安装“\(displayName)”？",
                                 message: nil,
                                 preferredStyle: .alert
                             )
@@ -370,13 +370,13 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                             fullMessage.append(KSurfaceNXT2CreateEntitlementSummary(["org.emexlabs.nyxian.ksurface.kernelextension.loading" : true]))
                             alert.setValue(fullMessage, forKey: "attributedMessage")
                             
-                            alert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
+                            alert.addAction(UIAlertAction(title: "安装", style: .default) { _ in
                                 DispatchQueue.global().async {
                                     _ = proceedWithInstall()
                                 }
                             })
                             
-                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+                            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
                             
                             self.present(alert, animated: true)
                         } else {
@@ -388,7 +388,7 @@ class KEXTManagementViewController: UIThemedTableViewController, UITextFieldDele
                 }
                 
             } catch {
-                NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: \(error.localizedDescription)")
+                NotificationServer.NotifyUser(level: .error, notification: "安装失败：\(error.localizedDescription)")
             }
         }
     }

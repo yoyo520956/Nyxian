@@ -65,7 +65,7 @@ class FileInfoViewController: UIThemedTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.title = "\(self.fileEntry.name) Info"
+        self.title = "\(self.fileEntry.name) 信息"
         self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: "filelist.info.vc")
         
         self.buildSections()
@@ -96,19 +96,19 @@ class FileInfoViewController: UIThemedTableViewController {
     private static func describe(_ type: FileAttributeType?) -> String {
         switch type {
             case .some(.typeRegular):
-                return "Regular File"
+                return "普通文件"
             case .some(.typeDirectory):
-                return "Directory"
+                return "目录"
             case .some(.typeSymbolicLink):
-                return "Symbolic Link"
+                return "符号链接"
             case .some(.typeSocket):
-                return "Socket"
+                return "套接字"
             case .some(.typeCharacterSpecial):
-                return "Character Device"
+                return "字符设备"
             case .some(.typeBlockSpecial):
-                return "Block Device"
+                return "块设备"
             default:
-                return "Unknown"
+                return "未知"
         }
     }
     
@@ -125,9 +125,9 @@ class FileInfoViewController: UIThemedTableViewController {
             case .complete:
                 return "Complete"
             case .completeUnlessOpen:
-                return "Complete Unless Open"
+                return "打开前保持完整"
             case .completeUntilFirstUserAuthentication:
-                return "Until First Unlock"
+                return "首次解锁前"
             case .none:
                 return "None"
             default:
@@ -136,8 +136,8 @@ class FileInfoViewController: UIThemedTableViewController {
     }
     
     private static func kind(for path: String, type: FileAttributeType?) -> String {
-        if type == .typeDirectory { return "Folder" }
-        if type == .typeSymbolicLink { return "Alias" }
+        if type == .typeDirectory { return "文件夹" }
+        if type == .typeSymbolicLink { return "别名" }
         
         let ext = (path as NSString).pathExtension
         if !ext.isEmpty,
@@ -145,7 +145,7 @@ class FileInfoViewController: UIThemedTableViewController {
            let description = utType.localizedDescription {
             return description
         }
-        return ext.isEmpty ? "Document" : "\(ext.uppercased()) File"
+        return ext.isEmpty ? "文档" : "\(ext.uppercased()) 文件"
     }
     
     private static func allocatedSize(for path: String) -> Int64? {
@@ -174,79 +174,79 @@ class FileInfoViewController: UIThemedTableViewController {
         var result: [Section] = []
         
         var general: [Row] = [
-            Row(title: "Name", value: self.fileEntry.name),
-            Row(title: "Kind", value: Self.kind(for: path, type: type))
+            Row(title: "名称", value: self.fileEntry.name),
+            Row(title: "种类", value: Self.kind(for: path, type: type))
         ]
         
         if type == .typeDirectory {
-            general.append(Row(title: "Size", value: "Calculating\u{2026}"))
+            general.append(Row(title: "大小", value: "计算中\u{2026}"))
             self.directorySizeIndexPath = IndexPath(row: general.count - 1, section: 0)
         } else {
-            general.append(Row(title: "Size", value: ByteCountFormatter.string(fromByteCount: self.logicalSize, countStyle: .file)))
+            general.append(Row(title: "大小", value: ByteCountFormatter.string(fromByteCount: self.logicalSize, countStyle: .file)))
             if let allocated = Self.allocatedSize(for: path), allocated != self.logicalSize {
-                general.append(Row(title: "On Disk", value: ByteCountFormatter.string(fromByteCount: allocated, countStyle: .file)))
+                general.append(Row(title: "磁盘占用", value: ByteCountFormatter.string(fromByteCount: allocated, countStyle: .file)))
             }
         }
         
         if type == .typeSymbolicLink, let target = try? FileManager.default.destinationOfSymbolicLink(atPath: path) {
-            general.append(Row(title: "Target", value: target, monospaced: true))
+            general.append(Row(title: "目标", value: target, monospaced: true))
         }
         
-        general.append(Row(title: "Where", value: (path as NSString).deletingLastPathComponent, monospaced: true))
-        result.append(Section(title: "General", rows: general))
+        general.append(Row(title: "位置", value: (path as NSString).deletingLastPathComponent, monospaced: true))
+        result.append(Section(title: "通用", rows: general))
         
         var dates: [Row] = []
         if let created = self.date(.creationDate) {
-            dates.append(Row(title: "Created", value: created))
+            dates.append(Row(title: "创建时间", value: created))
         }
         if let modified = self.date(.modificationDate) {
-            dates.append(Row(title: "Modified", value: modified))
+            dates.append(Row(title: "修改时间", value: modified))
         }
         if !dates.isEmpty {
-            result.append(Section(title: "Dates", rows: dates))
+            result.append(Section(title: "日期", rows: dates))
         }
         
         var ownership: [Row] = []
         if let owner = self.fileAttr[.ownerAccountName] as? String {
-            ownership.append(Row(title: "Owner", value: owner))
+            ownership.append(Row(title: "所有者", value: owner))
         } else if let uid = self.number(.ownerAccountID) {
-            ownership.append(Row(title: "Owner", value: "uid \(uid.intValue)"))
+            ownership.append(Row(title: "所有者", value: "uid \(uid.intValue)"))
         }
         if let group = self.fileAttr[.groupOwnerAccountName] as? String {
-            ownership.append(Row(title: "Group", value: group))
+            ownership.append(Row(title: "群组", value: group))
         } else if let gid = self.number(.groupOwnerAccountID) {
-            ownership.append(Row(title: "Group", value: "gid \(gid.intValue)"))
+            ownership.append(Row(title: "群组", value: "gid \(gid.intValue)"))
         }
         if let mode = self.number(.posixPermissions)?.uint16Value {
-            ownership.append(Row(title: "Permissions", value: Self.describePermissions(mode), monospaced: true))
+            ownership.append(Row(title: "权限", value: Self.describePermissions(mode), monospaced: true))
         }
         if let protection = self.fileAttr[.protectionKey] as? String {
-            ownership.append(Row(title: "Protection", value: Self.describeProtection(protection)))
+            ownership.append(Row(title: "保护", value: Self.describeProtection(protection)))
         }
         if !ownership.isEmpty {
-            result.append(Section(title: "Ownership", rows: ownership))
+            result.append(Section(title: "所有权", rows: ownership))
         }
         
-        var advanced: [Row] = [Row(title: "Type", value: Self.describe(type))]
+        var advanced: [Row] = [Row(title: "类型", value: Self.describe(type))]
         if let inode = self.number(.systemFileNumber) {
             advanced.append(Row(title: "Inode", value: "\(inode.uint64Value)", monospaced: true))
         }
         if let links = self.number(.referenceCount), links.intValue > 1 {
-            advanced.append(Row(title: "Hard Links", value: "\(links.intValue)"))
+            advanced.append(Row(title: "硬链接数", value: "\(links.intValue)"))
         }
         
         var flags: [String] = []
-        if self.number(.immutable)?.boolValue == true { flags.append("immutable") }
-        if self.number(.appendOnly)?.boolValue == true { flags.append("append-only") }
-        if self.number(.extensionHidden)?.boolValue == true { flags.append("hidden extension") }
+        if self.number(.immutable)?.boolValue == true { flags.append("不可变") }
+        if self.number(.appendOnly)?.boolValue == true { flags.append("仅追加") }
+        if self.number(.extensionHidden)?.boolValue == true { flags.append("隐藏扩展名") }
         if !flags.isEmpty {
-            advanced.append(Row(title: "Flags", value: flags.joined(separator: ", ")))
+            advanced.append(Row(title: "标志", value: flags.joined(separator: ", ")))
         }
-        result.append(Section(title: "Advanced", rows: advanced))
+        result.append(Section(title: "高级", rows: advanced))
         
         let xattrs = Self.extendedAttributeNames(atPath: path)
         if !xattrs.isEmpty {
-            result.append(Section(title: "Extended Attributes", rows: xattrs.map { Row(title: $0, value: "", monospaced: true) }))
+            result.append(Section(title: "扩展属性", rows: xattrs.map { Row(title: $0, value: "", monospaced: true) }))
         }
         
         self.sections = result
@@ -322,7 +322,7 @@ class FileInfoViewController: UIThemedTableViewController {
         
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             UIMenu(children: [
-                UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIAction(title: "拷贝", image: UIImage(systemName: "doc.on.doc")) { _ in
                     UIPasteboard.general.string = copied
                 }
             ])

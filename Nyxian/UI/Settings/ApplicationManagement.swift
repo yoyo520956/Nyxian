@@ -82,14 +82,14 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
         
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self, weak application] _ in
             // MARK: Open Menu
-            let openMenu: UIMenuElement = UIAction(title: "Open", image: UIImage(systemName: "arrow.up.right.square.fill")) { _ in
+            let openMenu: UIMenuElement = UIAction(title: "打开", image: UIImage(systemName: "arrow.up.right.square.fill")) { _ in
                 guard let application = application else { return }
                 PEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withItems: [:], withKernelSurfaceProcess: nil, doRestartIfRunning: false)
             }
             
             var menu: [UIMenuElement] = [openMenu]
             
-            let clearContainerAction = UIAction(title: "Clear Data Container", image: UIImage(systemName: "arrow.up.trash.fill")) { _ in
+            let clearContainerAction = UIAction(title: "清除数据容器", image: UIImage(systemName: "arrow.up.trash.fill")) { _ in
                 guard let application = application else { return }
                 if let process = PEProcessManager.shared().process(forBundleIdentifier: application.bundleIdentifier) {
                     // It is unsafe to send SIGKILL, because data container is wiped
@@ -98,7 +98,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 LDEApplicationWorkspace.shared().clearContainer(forBundleID: application.bundleIdentifier)
             }
             
-            let deleteAction = UIAction(title: "Delete", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] _ in
+            let deleteAction = UIAction(title: "删除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { [weak self] _ in
                 guard let self = self,
                       let application = application else { return }
                 PEProcessManager.shared().closeIfRunning(usingBundleIdentifier: application.bundleIdentifier)
@@ -110,14 +110,14 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 }
             }
             
-            let browseBundle = UIAction(title: "Browse Bundle", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
+            let browseBundle = UIAction(title: "浏览程序包", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
                 guard let self = self,
                       let application = application else { return }
                 
                 self.navigationController?.pushViewController(FileListViewController(isSublink: true, path: application.bundlePath), animated: true)
             }
             
-            let browseContainer = UIAction(title: "Browse Container", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
+            let browseContainer = UIAction(title: "浏览容器", image: UIImage(systemName: "arrow.forward.folder.fill")) { [weak self] _ in
                 guard let self = self,
                       let application = application else { return }
                 
@@ -137,7 +137,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
         let application = self.applications[indexPath.row]
         let processIdentifier: pid_t = PEProcessManager.shared().spawnProcess(withBundleIdentifier: application.bundleIdentifier, withItems: [:], withKernelSurfaceProcess: nil, doRestartIfRunning: false)
         if processIdentifier < 0 {
-            NotificationServer.NotifyUser(level: .error, notification: "\"\(application.localizedName ?? "Unknown")\" Is No Longer Available")
+            NotificationServer.NotifyUser(level: .error, notification: "“\(application.localizedName ?? "Unknown")”已不再可用")
         }
     }
     
@@ -149,7 +149,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        let alert = UIAlertController(title: nil, message: "Validating", preferredStyle: .alert)
+        let alert = UIAlertController(title: nil, message: "正在验证", preferredStyle: .alert)
         
         let activityIndicator = UIActivityIndicatorView(style: .medium)
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -180,7 +180,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 
                 guard let appBundlePathComponent = contents.first(where: { ($0 as NSString).pathExtension == "app" }) else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: no .app bundle found")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装应用失败：未找到 .app 程序包")
                     }
                     return
                 }
@@ -189,14 +189,14 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 
                 guard let bundle = Bundle(path: appBundleFullPath) else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: invalid bundle path")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装应用失败：程序包路径无效")
                     }
                     return
                 }
                 
                 guard let executablePath = bundle.executablePath else {
                     alert.dismiss(animated: true) {
-                        NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: invalid executable path")
+                        NotificationServer.NotifyUser(level: .error, notification: "安装应用失败：可执行文件路径无效")
                     }
                     return
                 }
@@ -255,7 +255,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 // Gated :3
                 let proceedWithInstall: () -> Void = {
                     DispatchQueue.main.async {
-                        let alert = UIAlertController(title: nil, message: "Installing", preferredStyle: .alert)
+                        let alert = UIAlertController(title: nil, message: "正在安装", preferredStyle: .alert)
                         
                         let activityIndicator = UIActivityIndicatorView(style: .medium)
                         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -290,14 +290,14 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                                         } else {
                                             DispatchQueue.main.async {
                                                 alert.dismiss(animated: true) {
-                                                    NotificationServer.NotifyUser(level: .error, notification: "Failed to sign or install application.")
+                                                    NotificationServer.NotifyUser(level: .error, notification: "签名或安装应用失败。")
                                                 }
                                             }
                                         }
                                     } else {
                                         DispatchQueue.main.async {
                                             alert.dismiss(animated: true) {
-                                                NotificationServer.NotifyUser(level: .error, notification: "Failed to sign or install application.")
+                                                NotificationServer.NotifyUser(level: .error, notification: "签名或安装应用失败。")
                                             }
                                         }
                                     }
@@ -313,7 +313,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                         if !final.isEmpty, !isRootCATrusted {
                             let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Unknown"
                             let alert = UIAlertController(
-                                title: "Install \"\(displayName)\"?",
+                                title: "安装“\(displayName)”？",
                                 message: nil,
                                 preferredStyle: .alert
                             )
@@ -322,13 +322,13 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                             fullMessage.append(KSurfaceNXT2CreateEntitlementSummary(final))
                             alert.setValue(fullMessage, forKey: "attributedMessage")
                             
-                            alert.addAction(UIAlertAction(title: "Install", style: .default) { _ in
+                            alert.addAction(UIAlertAction(title: "安装", style: .default) { _ in
                                 DispatchQueue.global().async {
                                     _ = proceedWithInstall()
                                 }
                             })
                             
-                            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+                            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
                             
                             self.present(alert, animated: true)
                         } else {
@@ -340,7 +340,7 @@ class ApplicationManagementViewController: UIThemedTableViewController, UITextFi
                 }
                 
             } catch {
-                NotificationServer.NotifyUser(level: .error, notification: "Failed to install application: \(error.localizedDescription)")
+                NotificationServer.NotifyUser(level: .error, notification: "安装应用失败：\(error.localizedDescription)")
             }
         }
     }

@@ -134,7 +134,7 @@ final class ComplexImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
     private func updateAppearance(animated: Bool) {
         let changes = {
             if let url = self.url {
-                self.titleLabel.text = "Certificate Selected"
+                self.titleLabel.text = "已选择证书"
                 self.filenameLabel.text = url.lastPathComponent
                 
                 self.iconView.image = UIImage(systemName: "checkmark.seal.fill")
@@ -144,12 +144,12 @@ final class ComplexImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
                 self.accessoryIcon.image = UIImage(systemName: "chevron.right")
                 self.accessoryIcon.tintColor = .tertiaryLabel
                 
-                self.accessibilityLabel = "Selected certificate"
+                self.accessibilityLabel = "已选择的证书"
                 self.accessibilityValue = url.lastPathComponent
-                self.accessibilityHint = "Double tap to choose another certificate"
+                self.accessibilityHint = "轻点两下以选择其他证书"
             } else {
-                self.titleLabel.text = "Select Certificate"
-                self.filenameLabel.text = "PKCS#12 certificate (.p12 or .pfx)"
+                self.titleLabel.text = "选择证书"
+                self.filenameLabel.text = "PKCS#12 证书（.p12 或 .pfx）"
                 
                 self.iconView.image = UIImage(systemName: "key.viewfinder")
                 self.iconContainer.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.12)
@@ -158,9 +158,9 @@ final class ComplexImportTableCell: UITableViewCell, UIDocumentPickerDelegate {
                 self.accessoryIcon.image = UIImage(systemName: "chevron.right")
                 self.accessoryIcon.tintColor = .tertiaryLabel
                 
-                self.accessibilityLabel = "Choose certificate"
+                self.accessibilityLabel = "选择证书"
                 self.accessibilityValue = nil
-                self.accessibilityHint = "Opens the file picker"
+                self.accessibilityHint = "打开文件选择器"
             }
         }
         

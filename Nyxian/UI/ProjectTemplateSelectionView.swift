@@ -37,10 +37,10 @@ struct ProjectTemplateSelectionView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            templateRow(title: "App", subtitle: "UI app for iPhone & iPad", systemImage: "appstore.app.fill", schemeKind: .app, scale: .large, flavour: .first)
-            templateRow(title: "Command Line Tool", subtitle: "Headless iOS app", systemImage: "terminal.fill", schemeKind: .utility)
-            templateRow(title: "Library", subtitle: "Library project", systemImage: "building.columns.fill", schemeKind: .library, isEnabled: false)
-            templateRow(title: "Ksurface Kernel Extension", subtitle: "Extend the ksurface microkernel your self", systemImage: "puzzlepiece.extension.fill", schemeKind: .kSurfaceKext, isEnabled: true, flavour: .last)
+            templateRow(title: "应用", subtitle: "iPhone 与 iPad 的界面应用", systemImage: "appstore.app.fill", schemeKind: .app, scale: .large, flavour: .first)
+            templateRow(title: "命令行工具", subtitle: "无界面 iOS 程序", systemImage: "terminal.fill", schemeKind: .utility)
+            templateRow(title: "库", subtitle: "库工程", systemImage: "building.columns.fill", schemeKind: .library, isEnabled: false)
+            templateRow(title: "Ksurface 内核扩展", subtitle: "亲手扩展 ksurface 微内核", systemImage: "puzzlepiece.extension.fill", schemeKind: .kSurfaceKext, isEnabled: true, flavour: .last)
         }
         .padding(.top, 2)
         .padding(.horizontal, 18)

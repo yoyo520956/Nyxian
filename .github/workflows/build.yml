@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     name: Build and Package
-    runs-on: macos-latest
+    runs-on: macos-26
 
     steps:
       - name: Checkout repository
@@ -24,31 +24,59 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Extract version
+      - name: Pin Xcode (26.2 — Runestone availability workaround)
         run: |
-          VERSION=$(awk -F'=' '/^[[:space:]]*VERSION[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' Config.xcconfig)
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          set -e
+          for v in Xcode_26.2 Xcode_26.3 Xcode_26.1 Xcode_16.4; do
+            if [ -d "/Applications/$v.app" ]; then
+              echo "DEVELOPER_DIR=/Applications/$v.app/Contents/Developer" >> "$GITHUB_ENV"
+              echo "Pinned: $v"
+              break
+            fi
+          done
+          xcodebuild -version || true
 
       - name: Install Dependencies
         run: |
           set -e
-
-          # Packages we desperately need
           brew install ldid dpkg libarchive
+
+      - name: Cache Theos
+        id: cache-theos
+        uses: actions/cache@v4
+        with:
+          path: ~/theos
+          key: theos-${{ runner.os }}-cn-v1
+
+      - name: Install Theos
+        if: steps.cache-theos.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ok=0
+          for i in 1 2 3; do
+            if bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"; then ok=1; break; fi
+            echo "retry $i..."
+            sleep 30
+          done
+          test "$ok" = "1"
 
       - name: Setup
         run: |
           set -e
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
 
       - name: Build Nyxian
         timeout-minutes: 1200
         run: |
           set -e
-
           CHECK_DEPS=0 make all
 
       - name: Upload Nyxian
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
+          name: nyxian-cn-ipa
           path: Nyxian.ipa
           archive: false

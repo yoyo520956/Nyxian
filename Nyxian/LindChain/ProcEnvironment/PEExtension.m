@@ -87,15 +87,8 @@ NSExtension *PEGetNSExtension(void)
 
 BOOL PEExtensionHasGetTaskAllowed(void)
 {
-    static BOOL hasGetTaskAllowed = NO;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        PKHostPlugIn *plugin = [PEGetNSExtension() _plugIn];
-        NSDictionary *entitlements = [plugin entitlements];
-        NSNumber *getTaskAllowed = [entitlements objectForKey:@"get-task-allow"];
-        hasGetTaskAllowed = [getTaskAllowed isKindOfClass:[NSNumber class]] && [getTaskAllowed boolValue];
-    });
-    return hasGetTaskAllowed;
+    /* CN build: 放行 Distribution 签名 */
+    return YES;
 }
 
 FBProcess *PESpawnFBProcess(NSDictionary *items,

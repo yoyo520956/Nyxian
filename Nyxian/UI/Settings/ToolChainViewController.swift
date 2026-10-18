@@ -46,11 +46,11 @@ class ToolChainViewController: UIThemedTableViewController {
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch section {
         case 0:
-            return "An incremental build compiles only the parts of the code that have changed, reducing build times by avoiding a full rebuild of the entire project."
+            return "增量编译只重新编译代码中改动的部分，避免整个工程全量重编，从而缩短编译时间。"
         case 1:
-            return "Threading in compilation refers to the compiler's ability to perform tasks in parallel like parsing, code generation, and optimization across multiple CPU threads to speed up the build process."
+            return "多线程编译指编译器将解析、代码生成、优化等任务分配到多个 CPU 线程并行执行，以加快构建速度。"
         case 2:
-            return "This clears caches that were created for performance."
+            return "清除为提升性能而创建的缓存。"
         default:
             return nil
         }
@@ -59,9 +59,9 @@ class ToolChainViewController: UIThemedTableViewController {
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch section {
         case 0:
-            return "Features"
+            return "功能"
         case 2:
-            return "Actions"
+            return "操作"
         default:
             return nil
         }
@@ -73,7 +73,7 @@ class ToolChainViewController: UIThemedTableViewController {
         switch indexPath.section {
         case 0:
             cell = tableView.dequeueReusableCell(withIdentifier: ToggleTableCell.reuseIdentifier, for: indexPath) as! ToggleTableCell
-            (cell as! ToggleTableCell).configure(title: "Incremental Build", key: "LDEIncrementalBuild", defaultValue: true)
+            (cell as! ToggleTableCell).configure(title: "增量编译", key: "LDEIncrementalBuild", defaultValue: true)
             break
         case 1:
             let optimCpuCount: Int = (Int)(CCGetMaximumPerformanceCores())
@@ -83,11 +83,11 @@ class ToolChainViewController: UIThemedTableViewController {
             switch(indexPath.row) {
             case 0:
                 cell = UITableViewCell()
-                cell.textLabel?.text = "Clear Module Cache"
+                cell.textLabel?.text = "清除模块缓存"
                 break
             default:
                 cell = UITableViewCell()
-                cell.textLabel?.text = "Clear Project Cache"
+                cell.textLabel?.text = "清除工程缓存"
                 break
             }
             break

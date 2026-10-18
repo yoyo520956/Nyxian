@@ -34,9 +34,9 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
         
         self.isModalInPresentation = true
         self.navigationController?.isModalInPresentation = true
-        self.title = "Set Up Signing"
+        self.title = "设置签名"
         
-        importButton.title = "Import"
+        importButton.title = "导入"
         importButton.target = self
         importButton.action = #selector(importButtonTapped)
         if #available(iOS 26.0, *) {
@@ -44,7 +44,7 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
         }
         
         let cancelButton: UIBarButtonItem = UIBarButtonItem()
-        cancelButton.title = "Cancel"
+        cancelButton.title = "取消"
         cancelButton.target = self
         cancelButton.action = #selector(closeButtonTapped)
         
@@ -84,7 +84,7 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
             cell = cert!
             break
         case 1:
-            textField = NXTextFieldTableCell(title: "Password", hint: "Enter certificate password", key: nil, defaultValue: "")
+            textField = NXTextFieldTableCell(title: "密码", hint: "输入证书密码", key: nil, defaultValue: "")
             textField!.textField.isSecureTextEntry = true
             textField!.textField.textContentType = .password
             cell = textField!
@@ -100,7 +100,7 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch section {
             case 1:
-                return "The password and certificate is only used to sign apps on your behave, they stay entirely on your device."
+                return "证书和密码仅用于替你签名 App，完全保存在你的设备上，不会上传。"
             default:
                 return nil
         }
@@ -143,20 +143,20 @@ class CertificateImporter: UIThemedTableViewController, UITextFieldDelegate {
                             }
                             return
                         }
-                        NotificationServer.NotifyUser(level: .error, notification: someWords ?? "A Unknown issue has happened importing the certificate, please report this issue. (error = \(status))")
+                        NotificationServer.NotifyUser(level: .error, notification: someWords ?? "导入证书时发生未知问题，请反馈此问题。(error = \(status))")
                         DispatchQueue.main.async {
                             self.navigationItem.setRightBarButton(self.importButton, animated: true)
                         }
                     }
                 } else {
                     guard let self = self else { return }
-                    NotificationServer.NotifyUser(level: .error, notification: "Select a certificate first.")
+                    NotificationServer.NotifyUser(level: .error, notification: "请先选择一个证书。")
                     DispatchQueue.main.async {
                         self.navigationItem.setRightBarButton(self.importButton, animated: true)
                     }
                 }
             } catch {
-                NotificationServer.NotifyUser(level: .error, notification: "Something went wrong importing the certificate! (\(error.localizedDescription))")
+                NotificationServer.NotifyUser(level: .error, notification: "导入证书时出错！(\(error.localizedDescription))")
             }
         }
     }

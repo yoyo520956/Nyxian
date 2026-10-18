@@ -38,7 +38,7 @@ class NXManagementUISingleFlight {
 class ManagementViewController: UIThemedTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Management"
+        title = "管理"
         view.backgroundColor = .systemBackground
     }
     
@@ -64,26 +64,26 @@ class ManagementViewController: UIThemedTableViewController {
         
         switch(indexPath.section) {
             case 0:
-                tableViewCell.textLabel?.text = "Browse Virtual File System"
+                tableViewCell.textLabel?.text = "浏览虚拟文件系统"
                 tableViewCell.accessoryType = .disclosureIndicator
             case 1:
-                tableViewCell.textLabel?.text = "Installed Root Certificate Authorities"
+                tableViewCell.textLabel?.text = "已安装的根证书"
                 tableViewCell.accessoryType = .disclosureIndicator
             case 2:
                 if indexPath.row == 0 {
-                    tableViewCell.textLabel?.text = "Installed Applications"
+                    tableViewCell.textLabel?.text = "已安装的应用"
                     tableViewCell.accessoryType = .disclosureIndicator
                 } else if indexPath.row == 1 {
-                    tableViewCell.textLabel?.text = "Installed KEXTs"
+                    tableViewCell.textLabel?.text = "已安装的 KEXT"
                     tableViewCell.accessoryType = .disclosureIndicator
                 }
             default:
                 if indexPath.row == 0 {
-                    tableViewCell.textLabel?.text = "Userspace Reboot"
+                    tableViewCell.textLabel?.text = "用户态重启"
                 } else if indexPath.row == 1 {
-                    tableViewCell.textLabel?.text = "Reload Daemons"
+                    tableViewCell.textLabel?.text = "重载守护进程"
                 } else if indexPath.row == 2 {
-                    tableViewCell.textLabel?.text = "Clear Application Caches"
+                    tableViewCell.textLabel?.text = "清除应用缓存"
                     tableViewCell.textLabel?.textColor = .systemRed
                 } else if indexPath.row == 3 {
                     tableViewCell.textLabel?.text = "Restore"
@@ -117,14 +117,14 @@ class ManagementViewController: UIThemedTableViewController {
                     }
                 } else if indexPath.row == 2 {
                     let alert = UIAlertController(
-                        title: "Clear Application Caches",
-                        message: "All application caches will be wiped, this can have consequences, but it will result in less data being in use. (Some people like that for performance reasons)",
+                        title: "清除应用缓存",
+                        message: "所有应用缓存将被清空，这可能带来一些影响，但会减少占用的数据量。（有人出于性能考虑喜欢这样做）",
                         preferredStyle: .alert
                     )
                 
-                    alert.addAction(UIAlertAction(title: "Proceed", style: .destructive) { [weak self] _ in
+                    alert.addAction(UIAlertAction(title: "继续", style: .destructive) { [weak self] _ in
                         DispatchQueue.main.async {
-                            let alert = UIAlertController(title: nil, message: "Clearing Application Caches", preferredStyle: .alert)
+                            let alert = UIAlertController(title: nil, message: "正在清除应用缓存", preferredStyle: .alert)
                         
                             let activityIndicator = UIActivityIndicatorView(style: .medium)
                             activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -156,12 +156,12 @@ class ManagementViewController: UIThemedTableViewController {
                                         alert.dismiss(animated: true)
                                         if !success {
                                             let alert = UIAlertController(
-                                                title: "Error",
-                                                message: "Clearing Application Caches failed",
+                                                title: "错误",
+                                                message: "清除应用缓存失败",
                                                 preferredStyle: .alert
                                             )
                                             
-                                            alert.addAction(UIAlertAction(title: "Close", style: .cancel))
+                                            alert.addAction(UIAlertAction(title: "关闭", style: .cancel))
                                             
                                             self.present(alert, animated: true)
                                         }
@@ -171,19 +171,19 @@ class ManagementViewController: UIThemedTableViewController {
                         }
                     })
                 
-                    alert.addAction(UIAlertAction(title: "Keep Caches", style: .cancel))
+                    alert.addAction(UIAlertAction(title: "保留缓存", style: .cancel))
                 
                     self.present(alert, animated: true)
                 } else if indexPath.row == 3 {
                     let alert = UIAlertController(
                         title: "Restore",
-                        message: "All apps, binaries and data containers in the virtual environment will be wiped.",
+                        message: "虚拟环境中的所有应用、二进制和数据容器都将被清空。",
                         preferredStyle: .alert
                     )
                 
-                    alert.addAction(UIAlertAction(title: "Proceed", style: .destructive) { [weak self] _ in
+                    alert.addAction(UIAlertAction(title: "继续", style: .destructive) { [weak self] _ in
                         DispatchQueue.main.async {
-                            let alert = UIAlertController(title: nil, message: "Restoring", preferredStyle: .alert)
+                            let alert = UIAlertController(title: nil, message: "正在重置", preferredStyle: .alert)
                         
                             let activityIndicator = UIActivityIndicatorView(style: .medium)
                             activityIndicator.translatesAutoresizingMaskIntoConstraints = false
@@ -215,12 +215,12 @@ class ManagementViewController: UIThemedTableViewController {
                                         alert.dismiss(animated: true)
                                         if !success {
                                             let alert = UIAlertController(
-                                                title: "Error",
-                                                message: "Restore failed",
+                                                title: "错误",
+                                                message: "重置失败",
                                                 preferredStyle: .alert
                                             )
                                             
-                                            alert.addAction(UIAlertAction(title: "Close", style: .cancel))
+                                            alert.addAction(UIAlertAction(title: "关闭", style: .cancel))
                                             
                                             self.present(alert, animated: true)
                                         }
@@ -230,7 +230,7 @@ class ManagementViewController: UIThemedTableViewController {
                         }
                     })
                 
-                    alert.addAction(UIAlertAction(title: "Keep Data", style: .cancel))
+                    alert.addAction(UIAlertAction(title: "保留数据", style: .cancel))
                 
                     self.present(alert, animated: true)
                 }

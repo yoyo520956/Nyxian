@@ -36,7 +36,7 @@ import UIKit
     }
     
     private func reloadProjectsFromDisk() {
-        let rawProjectsList = NXProject.listProjects(at: NXBootstrap.shared().rootURL.appendingPathComponent("Projects")) as! [String: [NXProject]]
+        let rawProjectsList = NXProject.listProjects(at: NXBootstrap.shared().rootURL.appendingPathComponent("工程")) as! [String: [NXProject]]
         var buckets: [String: [NXProject]] = [:]
         
         for project in rawProjectsList.values.flatMap({ $0 }) {
@@ -53,7 +53,7 @@ import UIKit
         
         self.tableView.register(ProjectTableCell.self, forCellReuseIdentifier: ProjectTableCell.reuseIdentifier)
         self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        self.title = "Projects"
+        self.title = "工程"
 
         let createItem = UIBarButtonItem(
             barButtonSystemItem: .add,
@@ -110,8 +110,8 @@ import UIKit
             switch project.projectConfig.schemeKind {
             case .app: return "applications"
             case .utility: return "utilities"
-            case .kSurfaceKext: return "kernel extension"
-            default: return "unknown"
+            case .kSurfaceKext: return "内核扩展"
+            default: return "未知"
             }
         }()
         
@@ -155,8 +155,8 @@ import UIKit
             switch project.projectConfig.schemeKind {
             case .app: return "applications"
             case .utility: return "utilities"
-            case .kSurfaceKext: return "kernel extension"
-            default: return "unknown"
+            case .kSurfaceKext: return "内核扩展"
+            default: return "未知"
             }
         }()
         
@@ -209,22 +209,22 @@ import UIKit
         if keyB == "applications" { return false }
         if keyA == "utilities" { return true }
         if keyB == "utilities" { return false }
-        if keyA == "unknown" { return false }
-        if keyB == "unknown" { return true }
+        if keyA == "未知" { return false }
+        if keyB == "未知" { return true }
         return keyA < keyB
     }
     
     private func createProject(from optionsModel: ProjectTemplateOptionsModel) -> Bool {
         let name = optionsModel.productName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
-            NotificationServer.NotifyUser(level: .error, notification: "Product name is required")
+            NotificationServer.NotifyUser(level: .error, notification: "必须填写产品名称")
             return false
         }
         
         optionsModel.saveOrganizationIdentifier()
         
         guard let project = NXProject.createProject(
-            at: NXBootstrap.shared().rootURL.appendingPathComponent("Projects"),
+            at: NXBootstrap.shared().rootURL.appendingPathComponent("工程"),
             withName: name,
             withOrganizationIdentifier: optionsModel.normalizedOrganizationIdentifier,
             withBundleIdentifier: optionsModel.bundleIdentifier,
@@ -232,7 +232,7 @@ import UIKit
             withLanguageKind: optionsModel.selectedLanguage,
             withInterfaceKind: optionsModel.selectedInterface) else
         {
-            NotificationServer.NotifyUser(level: .error, notification: "Failed to create project")
+            NotificationServer.NotifyUser(level: .error, notification: "创建工程失败")
             return false
         }
         
@@ -255,8 +255,8 @@ import UIKit
         switch project.projectConfig.schemeKind {
         case .app: return "applications"
         case .utility: return "utilities"
-        case .kSurfaceKext: return "kernel extension"
-        default: return "unknown"
+        case .kSurfaceKext: return "内核扩展"
+        default: return "未知"
         }
     }
     
@@ -264,7 +264,7 @@ import UIKit
         switch key {
         case "applications": return "Applications"
         case "utilities": return "Utilities"
-        case "kernel extension": return "Kernel Extensions"
+        case "内核扩展": return "Kernel Extensions"
         default: return key.capitalized
         }
     }
@@ -323,7 +323,7 @@ import UIKit
     
     override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { suggestedActions in
-            let export: UIAction = UIAction(title: "Export", image: UIImage(systemName: "square.and.arrow.up.fill")) { _ in
+            let export: UIAction = UIAction(title: "导出", image: UIImage(systemName: "square.and.arrow.up.fill")) { _ in
                 DispatchQueue.global().async {
                     let key = self.sortedSectionKeys[indexPath.section]
                     let sectionProjects = self.projectsList[key] ?? []
@@ -335,15 +335,15 @@ import UIKit
                 }
             }
             
-            let item: UIAction = UIAction(title: "Remove", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { _ in
+            let item: UIAction = UIAction(title: "移除", image: UIImage(systemName: "trash.fill"), attributes: .destructive) { _ in
                 let key = self.sortedSectionKeys[indexPath.section]
                 let sectionProjects = self.projectsList[key] ?? []
                 let project = sectionProjects[indexPath.row]
                 
                 self.presentConfirmationAlert(
-                    title: "Warning",
-                    message: "Are you sure you want to remove \"\(project.projectConfig.displayName!)\"?",
-                    confirmTitle: "Remove",
+                    title: "警告",
+                    message: "确定要移除“\(project.projectConfig.displayName!)”吗？",
+                    confirmTitle: "移除",
                     confirmStyle: .destructive)
                 {
                     self.removeProject(project)
@@ -575,13 +575,13 @@ struct ProjectTemplateOptionsView: View {
         VStack(spacing: 12) {
             VStack(spacing: 0) {
                 templateTextField(
-                    label: "Product Name",
-                    placeholder: "Product Name",
+                    label: "产品名称",
+                    placeholder: "产品名称",
                     text: $model.productName
                 )
                 themedDivider
                 templateTextField(
-                    label: "Organization Identifier",
+                    label: "组织标识符",
                     placeholder: "com.example",
                     text: $model.organizationIdentifier,
                     keyboardType: .URL
@@ -595,7 +595,7 @@ struct ProjectTemplateOptionsView: View {
             VStack(spacing: 8) {
                 if model.showsAppOptions {
                     ProjectTemplatePickerRow(
-                        title: "Interface:",
+                        title: "界面：",
                         options: model.interfaceOptions,
                         disabledIDs: model.interfaceDisabledIDs,
                         selectionID: Binding(
@@ -606,7 +606,7 @@ struct ProjectTemplateOptionsView: View {
                 }
                 
                 ProjectTemplatePickerRow(
-                    title: "Language:",
+                    title: "语言：",
                     options: model.languageOptions,
                     selectionID: Binding(
                         get: { model.languageSelection },
@@ -630,7 +630,7 @@ struct ProjectTemplateOptionsView: View {
     
     private var generatedIdentifierRow: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Bundle Identifier")
+            Text("包标识符")
                 .font(.caption)
                 .foregroundStyle(secondaryTextColor)
             Text(model.bundleIdentifier.isEmpty ? " " : model.bundleIdentifier)

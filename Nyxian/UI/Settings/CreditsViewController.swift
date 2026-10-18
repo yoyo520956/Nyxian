@@ -31,42 +31,42 @@ class CreditsViewController: UIThemedTableViewController {
     
     private let sections: [CreditSection] = [
         CreditSection(
-            title: "Team",
+            title: "团队",
             credits: [
                 Credit(
                     name: "emexLabs",
-                    role: "Maintainer",
+                    role: "维护者",
                     ghuser: "emexlab"
                 ),
                 Credit(
                     name: "Nyxia",
-                    role: "Maintainer",
+                    role: "维护者",
                     ghuser: "mach-port-t"
                 ),
                 Credit(
                     name: "Catelyn",
-                    role: "Developer",
+                    role: "开发者",
                     ghuser: "mimalloc"
                 ),
                 Credit(
                     name: "LucaVmu",
-                    role: "Developer",
+                    role: "开发者",
                     ghuser: "lucavmu"
                 ),
             ]
         ),
         
         CreditSection(
-            title: "Security Researchers",
+            title: "安全研究者",
             credits: [
                 Credit(
                     name: "semvis123",
-                    role: "Security Researcher",
+                    role: "安全研究者",
                     ghuser: "semvis123"
                 ),
                 Credit(
                     name: "zipgod",
-                    role: "Security Researcher",
+                    role: "安全研究者",
                     ghuser: "zipgod24"
                 )
             ]
@@ -77,12 +77,12 @@ class CreditsViewController: UIThemedTableViewController {
             credits: [
                 Credit(
                     name: "Kyle",
-                    role: "Swift Support",
+                    role: "Swift 支持",
                     ghuser: "Kyle-Ye"
                 ),
                 Credit(
                     name: "Ruri",
-                    role: "Clearing application caches",
+                    role: "应用缓存清理",
                     ghuser: "ruri1208"
                 ),
                 Credit(
@@ -92,45 +92,45 @@ class CreditsViewController: UIThemedTableViewController {
                 ),
                 Credit(
                     name: "엄세환",
-                    role: "Contributor",
+                    role: "贡献者",
                     ghuser: "op06072"
                 ),
                 Credit(
                     name: "L0tsen",
-                    role: "Contributor",
+                    role: "贡献者",
                     ghuser: "l0tsen"
                 ),
                 Credit(
                     name: "Offihito",
-                    role: "Contributor",
+                    role: "贡献者",
                     ghuser: "Offihito"
                 )
             ]
         ),
         
         CreditSection(
-            title: "Design & Icons",
+            title: "设计与图标",
             credits: [
                 Credit(
                     name: "ayame09",
-                    role: "Original Nyxian app icons",
+                    role: "Nyxian 原版图标",
                     ghuser: "ayayame09"
                 ),
                 Credit(
                     name: "sxdev",
-                    role: "Drawn app icons",
+                    role: "手绘图标",
                     ghuser: "SamoXcZ"
                 ),
                 Credit(
                     name: "xzadik",
-                    role: "Nyxcat app icons",
+                    role: "Nyxcat 图标",
                     ghuser: "xzadik"
                 )
             ]
         ),
         
         CreditSection(
-            title: "Open Source Projects",
+            title: "开源项目",
             credits: [
                 Credit(
                     name: "LiveContainer",
@@ -151,7 +151,7 @@ class CreditsViewController: UIThemedTableViewController {
         ),
         
         CreditSection(
-            title: "Externals",
+            title: "外部项目",
             credits: [
                 Credit(
                     name: "Simon Støvring",
@@ -185,7 +185,7 @@ class CreditsViewController: UIThemedTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.title = "Credits"
+        self.title = "致谢"
         
         self.tableView.register(CreditCell.self, forCellReuseIdentifier: CreditCell.identifier)
     }

@@ -120,34 +120,34 @@ enum PosixSignal: CustomStringConvertible {
 
     var description: String {
         switch self {
-            case .hangup: return "SIGHUP: Hangup detected on controlling terminal"
-            case .interrupt: return "SIGINT: Interrupt from keyboard"
-            case .quit: return "SIGQUIT: Quit from keyboard"
-            case .illegal: return "SIGILL: Illegal Instruction"
-            case .trap: return "SIGTRAP: Trace/breakpoint trap"
-            case .abort: return "SIGABRT: Abort signal"
-            case .bus: return "SIGBUS: Bus error (bad memory access)"
-            case .fpe: return "SIGFPE: Floating-point exception"
-            case .kill: return "SIGKILL: Kill signal (forced termination)"
-            case .user1: return "SIGUSR1: User-defined signal 1"
-            case .segv: return "SIGSEGV: Segmentation fault (invalid memory reference)"
-            case .user2: return "SIGUSR2: User-defined signal 2"
-            case .pipe: return "SIGPIPE: Broken pipe"
-            case .alarm: return "SIGALRM: Timer signal from alarm()"
-            case .terminate: return "SIGTERM: Termination signal"
-            case .child: return "SIGCHLD: Child process stopped or terminated"
-            case .cont: return "SIGCONT: Continue if stopped"
-            case .stop: return "SIGSTOP: Stop process"
-            case .tstp: return "SIGTSTP: Stop typed at terminal"
-            case .ttin: return "SIGTTIN: Terminal input for background process"
-            case .ttou: return "SIGTTOU: Terminal output for background process"
-            case .urgent: return "SIGURG: Urgent condition on socket"
-            case .xcpu: return "SIGXCPU: CPU time limit exceeded"
-            case .xfsz: return "SIGXFSZ: File size limit exceeded"
-            case .vtalrm: return "SIGVTALRM: Virtual alarm clock"
-            case .prof: return "SIGPROF: Profiling timer expired"
-            case .winch: return "SIGWINCH: Window resize signal"
-            case .sys: return "SIGSYS: Bad system call"
+            case .hangup: return "SIGHUP：控制终端检测到挂断"
+            case .interrupt: return "SIGINT：键盘中断"
+            case .quit: return "SIGQUIT：键盘退出请求"
+            case .illegal: return "SIGILL：非法指令"
+            case .trap: return "SIGTRAP：跟踪/断点陷阱"
+            case .abort: return "SIGABRT：中止信号"
+            case .bus: return "SIGBUS：总线错误（非法内存访问）"
+            case .fpe: return "SIGFPE：浮点异常"
+            case .kill: return "SIGKILL：强制终止信号"
+            case .user1: return "SIGUSR1：用户自定义信号 1"
+            case .segv: return "SIGSEGV：段错误（非法内存引用）"
+            case .user2: return "SIGUSR2：用户自定义信号 2"
+            case .pipe: return "SIGPIPE：管道破裂"
+            case .alarm: return "SIGALRM：alarm() 定时信号"
+            case .terminate: return "SIGTERM：终止信号"
+            case .child: return "SIGCHLD：子进程停止或终止"
+            case .cont: return "SIGCONT：继续已停止的进程"
+            case .stop: return "SIGSTOP：停止进程"
+            case .tstp: return "SIGTSTP：终端发出的停止信号"
+            case .ttin: return "SIGTTIN：后台进程读取终端输入"
+            case .ttou: return "SIGTTOU：后台进程写入终端输出"
+            case .urgent: return "SIGURG：套接字紧急条件"
+            case .xcpu: return "SIGXCPU：超出 CPU 时间限制"
+            case .xfsz: return "SIGXFSZ：超出文件大小限制"
+            case .vtalrm: return "SIGVTALRM：虚拟计时器信号"
+            case .prof: return "SIGPROF：性能分析计时器到期"
+            case .winch: return "SIGWINCH：窗口尺寸变化信号"
+            case .sys: return "SIGSYS：非法系统调用"
         }
     }
 }
@@ -213,8 +213,8 @@ class MainSplitViewController: UISplitViewController, UISplitViewControllerDeleg
     }
     
     override var keyCommands: [UIKeyCommand]? {
-        let closeCommand = UIKeyCommand(title: "Close", action: #selector(self.detailVC?.closeCurrentTab), input: "W", modifierFlags: [.command])
-        let runCommand = UIKeyCommand(title: "Run", action: #selector(self.invokeBuild), input: "R", modifierFlags: [.command])
+        let closeCommand = UIKeyCommand(title: "关闭", action: #selector(self.detailVC?.closeCurrentTab), input: "W", modifierFlags: [.command])
+        let runCommand = UIKeyCommand(title: "运行", action: #selector(self.invokeBuild), input: "R", modifierFlags: [.command])
         
         closeCommand.wantsPriorityOverSystemBehavior = true
         
@@ -285,7 +285,7 @@ class MainSplitViewController: UISplitViewController, UISplitViewControllerDeleg
                             detailVC.process = process
                         } else {
                             if let logView = detailVC.logView {
-                                logView.writeMessage(toConsole: "failed to spawn process")
+                                logView.writeMessage(toConsole: "进程启动失败")
                             }
                         }
                     }
@@ -315,7 +315,7 @@ class SplitScreenDetailViewController: UIViewController, PEProcessObserver {
         let emptyEditorVC: UIViewController = UIViewController()
         emptyEditorVC.view.backgroundColor = currentTheme?.backgroundColor
         let label: UILabel = UILabel()
-        label.text = "Empty Editor"
+        label.text = "空编辑器"
         label.translatesAutoresizingMaskIntoConstraints = false
         emptyEditorVC.view.addSubview(label)
         NSLayoutConstraint.activate([
@@ -722,18 +722,18 @@ class SplitScreenDetailViewController: UIViewController, PEProcessObserver {
                 
                 if signalBits == 0 {
                     let exitCode = (code >> 8) & 0xFF
-                    logView.writeMessage(toConsole: "process did exit with code: \(exitCode)", with: exitCode == 0 ? .systemGreen : .systemRed)
+                    logView.writeMessage(toConsole: "进程已退出，退出码：\(exitCode)", with: exitCode == 0 ? .systemGreen : .systemRed)
                 } else if !isStopped {
                     let signalNumber = signalBits
                     var color: UIColor = .systemYellow
                     if(signalNumber == 9) {
                         color = .systemRed
                     }
-                    logView.writeMessage(toConsole: "process was killed by signal: \(signalNumber) (\(PosixSignal(rawValue: signalNumber)?.description ?? "SIGUNKNOWN"))", with: color)
+                    logView.writeMessage(toConsole: "进程被信号终止：\(signalNumber) (\(PosixSignal(rawValue: signalNumber)?.description ?? "SIGUNKNOWN"))", with: color)
                 } else {
                     // IDK how this would happen
                     let stopSignal = (code >> 8) & 0xFF
-                    logView.writeMessage(toConsole: "process was stopped by signal: \(stopSignal) (\(PosixSignal(rawValue: stopSignal)?.description ?? "SIGUNKNOWN"))", with: .yellow)
+                    logView.writeMessage(toConsole: "进程被信号停止：\(stopSignal) (\(PosixSignal(rawValue: stopSignal)?.description ?? "SIGUNKNOWN"))", with: .yellow)
                 }
             }
         }
