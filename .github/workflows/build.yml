@@ -48,10 +48,18 @@ jobs:
 
       - name: Install Theos
         if: steps.cache-theos.outputs.cache-hit != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+          ok=0
+          for i in 1 2 3; do
+            if bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"; then ok=1; break; fi
+            echo "Theos install attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+          test "$ok" = "1"
+          test -d "$HOME/theos/sdks" && ls "$HOME/theos/sdks" | grep -q sdk
 
       - name: Setup
         run: |
