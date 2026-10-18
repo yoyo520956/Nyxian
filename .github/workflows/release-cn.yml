@@ -1,0 +1,29 @@
+name: Release CN IPA (no rebuild)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download artifact from run 39130284109
+        uses: actions/download-artifact@v4
+        with:
+          name: nyxian-cn-ipa
+          run-id: 39130284109
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check file
+        run: ls -la
+
+      - name: Create release and upload
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.11.4-cn
+          name: "Nyxian v0.11.4 Chinese Edition"
+          body: "Build from run 39130284109 (cn-0.11.4 branch, 7th round green). Unsigned IPA."
+          files: Nyxian.ipa
